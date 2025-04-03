@@ -1,7 +1,7 @@
 import os 
 import json
 
-def get_all_prompts(dataset, data=None, lang="en", cot=False):
+def get_all_prompts(dataset, data=None, lang="en", cot=False, use_sys=False, add_think_token=False):
     """
     Generate prompts for the specified dataset using provided data.
     
@@ -36,7 +36,7 @@ def get_all_prompts(dataset, data=None, lang="en", cot=False):
                 "choices": ea_sample["Choices"][lang],
                 "subject": ea_sample["Subject"][lang]
             }
-            EA_prompt = construct_emobench_prompt(task="EA", lang=lang, cot=cot, prompt_params=ea_prompt_params)
+            EA_prompt = construct_emobench_prompt(task="EA", lang=lang, cot=cot, prompt_params=ea_prompt_params, use_sys=use_sys, add_think_token=add_think_token)
             all_prompts["EA"].append(EA_prompt)
 
         for eu_sample in eu_data:
@@ -46,14 +46,14 @@ def get_all_prompts(dataset, data=None, lang="en", cot=False):
                 "subject": eu_sample["Subject"][lang]
             }
             EU_prompt_emotion = construct_emobench_prompt(task="EU", eu_task="Emotion", lang=lang, cot=cot, 
-                                        prompt_params=eu_prompt_emotion_params)
+                                        prompt_params=eu_prompt_emotion_params, use_sys=use_sys, add_think_token=add_think_token)
             
 
             eu_prompt_cause_params = eu_prompt_emotion_params.copy()
             eu_prompt_cause_params["choices"] = eu_sample["Cause"]["Choices"][lang]
             eu_prompt_cause_params["emotions"] = eu_sample["Emotion"]["Label"][lang]
             EU_prompt_cause = construct_emobench_prompt(task="EU", eu_task="Cause", lang=lang, cot=cot, 
-                                prompt_params=eu_prompt_cause_params)
+                                prompt_params=eu_prompt_cause_params, use_sys=use_sys, add_think_token=add_think_token)
 
             all_prompts["EU"]["Emotion"].append(EU_prompt_emotion)
             all_prompts["EU"]["Cause"].append(EU_prompt_cause)
@@ -74,14 +74,14 @@ def get_all_prompts(dataset, data=None, lang="en", cot=False):
                     prompt_params["choice_c"] = sample["OPTION-C"]
                     prompt_params["choice_d"] = sample["OPTION-D"]
 
-                prompt = construct_tombench_prompt(prompt_params, lang=lang, cot=cot)
+                prompt = construct_tombench_prompt(prompt_params, lang=lang, cot=cot, use_sys=use_sys, add_think_token=add_think_token)
                 all_prompts[scenario].append(prompt)
     else:
         raise ValueError(f"Dataset {dataset} not defined")
         
     return all_prompts
 
-def construct_tombench_prompt(prompt_params, lang="en", cot=False):
+def construct_tombench_prompt(prompt_params, lang="en", cot=False, use_sys=False, add_think_token=False):
     
     with open(os.path.join("datasets", "ToMBench", "prompts.json"), "r") as f:
         prompts = json.load(f)
@@ -99,17 +99,26 @@ def construct_tombench_prompt(prompt_params, lang="en", cot=False):
     sys_prompt = prompts[sys_prompt_name]
     user_prompt = prompts[user_prompt_name]
     
-    prompt = [{
-        "role": "system",
-        "content": sys_prompt
-    },
-    {
-        "role": "user",
-        "content": user_prompt.format(**prompt_params)
-    }]
+    if add_think_token:
+        user_prompt = f"{user_prompt} <think>\n"
+    
+    if use_sys:
+        prompt = [{
+            "role": "system",
+            "content": sys_prompt
+        },
+        {
+            "role": "user",
+            "content": user_prompt.format(**prompt_params)
+        }]
+    else:
+        prompt = [{
+            "role": "user",
+            "content": sys_prompt + "\n\n" + user_prompt.format(**prompt_params)
+        }]
     return prompt
 
-def construct_emobench_prompt(prompt_params, task, eu_task="Emotion", lang="en", cot=False):
+def construct_emobench_prompt(prompt_params, task, eu_task="Emotion", lang="en", cot=False, use_sys=False, add_think_token=False):
 
     with open(os.path.join("datasets", "EmoBench", "data", "dicts.json"), "r") as f:
         prompts = json.load(f)
@@ -127,13 +136,21 @@ def construct_emobench_prompt(prompt_params, task, eu_task="Emotion", lang="en",
         raise ValueError(f"Task {task} not defined")
     
     cot_prompt = prompts["Prompts"][cot][lang]
+    if add_think_token:
+        cot_prompt += "<think>\n"
 
-    prompt = [{
-        "role": "system",
-        "content": sys_prompt
-    },
-    {
-        "role": "user",
-        "content": task_prompt.format(**prompt_params) + cot_prompt
-    }]
+    if use_sys:
+        prompt = [{
+            "role": "system",
+            "content": sys_prompt
+        },
+        {
+            "role": "user",
+            "content": task_prompt.format(**prompt_params) + cot_prompt
+        }]
+    else:
+        prompt = [{
+            "role": "user",
+            "content": sys_prompt + "\n\n" + task_prompt.format(**prompt_params) + cot_prompt
+        }]
     return prompt

@@ -1,13 +1,12 @@
 import argparse
 import sys
 import subprocess
-import json
-import os
 from pathlib import Path
 
 from prompts import get_all_prompts
 from exp_datasets import get_dataset, get_gts
 from models import LLM
+from utils import load_existing_results, save_results, print_output, save_prompts
 
 parser = argparse.ArgumentParser(description='Run experiment with language model')
 parser.add_argument('-l', '--lang', type=str, choices=['en', 'zh'], default='en',
@@ -25,94 +24,29 @@ dataset = args.dataset
 results_dir = Path('results')
 results_dir.mkdir(exist_ok=True)
 
-def get_results_filename(dataset, lang, cot):
-    cot_str = '_cot' if cot else ''
-    return f'results/{dataset}_{lang}{cot_str}_results.json'
-
-def get_prompts_gts_filename(dataset, lang, cot):
-    cot_str = '_cot' if cot else ''
-    return f'results/{dataset}_{lang}{cot_str}_prompts_gts.json'
-
-def load_existing_results(dataset, lang, cot):
-    filename = get_results_filename(dataset, lang, cot)
-    if os.path.exists(filename):
-        try:
-            with open(filename, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except json.JSONDecodeError:
-            print(f"Error reading {filename}, starting with fresh results")
-            return {}
-    return {}
-
-def load_or_save_prompts_gts(dataset, lang, cot, all_prompts, gts):
-    filename = get_prompts_gts_filename(dataset, lang, cot)
-    if os.path.exists(filename):
-        print(f"Loading prompts and ground truths from {filename}")
-        with open(filename, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    else:
-        print(f"Creating new prompts and ground truths file {filename}")
-        prompts_gts = {}
-        
-        if dataset == "emobench":
-            prompts_gts = {
-                "EA": {"prompts": all_prompts["EA"], "gts": gts["EA"]},
-                "EU": {
-                    "Emotion": {"prompts": all_prompts["EU"]["Emotion"], "gts": gts["EU"]["Emotion"]},
-                    "Cause": {"prompts": all_prompts["EU"]["Cause"], "gts": gts["EU"]["Cause"]}
-                }
-            }
-        elif dataset == "tombench":
-            prompts_gts = {}
-            for category in all_prompts.keys():
-                prompts_gts[category] = {
-                    "prompts": all_prompts[category],
-                    "gts": gts[category]
-                }
-                
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(prompts_gts, f, ensure_ascii=False, indent=2)
-            
-        return prompts_gts
-
-def save_results(results, dataset, lang, cot):
-    filename = get_results_filename(dataset, lang, cot)
-    with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
-
-dataset_data = get_dataset(dataset)
-all_prompts = get_all_prompts(dataset, data=dataset_data, lang=lang, cot=cot)
-gts = get_gts(dataset)
-
-prompts_gts = load_or_save_prompts_gts(dataset, lang, cot, all_prompts, gts)
-
-max_new_tokens = 2048
-
+gen_params = {"max_new_tokens": 2048, "temperature": 0.6}
 llm_models = [
+    "QWEN-QwQ-32B",
+    "DEEPSEEK-R1-DISTILL-QWEN-7B",
+    "DEEPSEEK-R1-DISTILL-LLAMA-8B",
     "DEEPSEEK-R1",
-    "DEEPSEEK-R1-DISTILL-QWEN-7B-GGUF",
 ]
 
-gen_params = {"max_new_tokens": max_new_tokens}
-
-subprocess.run(["gpustat"])
-
-def print_output(reasoning_steps, answer, gt):
-    print("---")
-    print(reasoning_steps)
-    print("---")
-    print(answer)
-    print("---")
-    print(gt)
-    print("---")
-    sys.stdout.flush()
-
+dataset_data = get_dataset(dataset)
+gts = get_gts(dataset)
 results = load_existing_results(dataset, lang, cot)
 
 for llm_name in llm_models:
     print(f"\nProcessing LLM: {llm_name}\n")
     
     llm = LLM(llm_name, gen_params=gen_params)
+    use_sys = True if "DEEPSEEK" in llm_name else False
+    add_think_token = True if "DISTILL" in llm_name else False
+    
+    saved_prompts = get_all_prompts(dataset, data=dataset_data, lang=lang, cot=cot, use_sys=True, add_think_token=False)
+    save_prompts(dataset, lang, cot, saved_prompts)
+    
+    all_prompts = get_all_prompts(dataset, data=dataset_data, lang=lang, cot=cot, use_sys=use_sys, add_think_token=add_think_token)
     
     if dataset == "emobench":
         print("Running EmoBench experiment...")
@@ -139,7 +73,7 @@ for llm_name in llm_models:
         if completed_samples < total_samples:
             print(f"Continuing EA experiments for {llm_name}: {completed_samples}/{total_samples} completed")
             
-            for i, (prompt, gt) in enumerate(zip(prompts_gts["EA"]["prompts"][completed_samples:], prompts_gts["EA"]["gts"][completed_samples:])):
+            for i, (prompt, gt) in enumerate(zip(all_prompts["EA"][completed_samples:], gts["EA"][completed_samples:])):
                 print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
                 
                 print(prompt[1]["content"])
@@ -167,7 +101,7 @@ for llm_name in llm_models:
         if completed_samples < total_samples:
             print(f"Continuing EU-Emotion experiments for {llm_name}: {completed_samples}/{total_samples} completed")
             
-            for i, (prompt, gt) in enumerate(zip(prompts_gts["EU"]["Emotion"]["prompts"][completed_samples:], prompts_gts["EU"]["Emotion"]["gts"][completed_samples:])):
+            for i, (prompt, gt) in enumerate(zip(all_prompts["EU"]["Emotion"][completed_samples:], gts["EU"]["Emotion"][completed_samples:])):
                 print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
                 
                 print(prompt[1]["content"])
@@ -189,12 +123,12 @@ for llm_name in llm_models:
         print("Starting with Cause: ")
         llm_results = results[llm_name]["EU"]["Cause"]
         completed_samples = len(llm_results.get("answers", []))
-        total_samples = len(prompts_gts["EU"]["Cause"]["prompts"])
+        total_samples = len(all_prompts["EU"]["Cause"])
         
         if completed_samples < total_samples:
             print(f"Continuing EU-Cause experiments for {llm_name}: {completed_samples}/{total_samples} completed")
             
-            for i, (prompt, gt) in enumerate(zip(prompts_gts["EU"]["Cause"]["prompts"][completed_samples:], prompts_gts["EU"]["Cause"]["gts"][completed_samples:])):
+            for i, (prompt, gt) in enumerate(zip(all_prompts["EU"]["Cause"][completed_samples:], gts["EU"]["Cause"][completed_samples:])):
                 print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
                 
                 print(prompt[1]["content"])
@@ -215,17 +149,17 @@ for llm_name in llm_models:
         
     elif dataset == "tombench":
         print("Running TomBench experiment...")
-        print(f"TomBench has {len(prompts_gts)} categories: {list(prompts_gts.keys())}")
+        print(f"TomBench has {len(all_prompts)} categories: {list(all_prompts.keys())}")
         
         if llm_name not in results:
             results[llm_name] = {}
-            for category in prompts_gts.keys():
+            for category in all_prompts.keys():
                 results[llm_name][category] = {
                     "reasoning_steps": [],
                     "answers": []
                 }
     
-        for category in prompts_gts.keys():
+        for category in all_prompts.keys():
             if category not in results[llm_name]:
                 results[llm_name][category] = {
                     "reasoning_steps": [],
@@ -234,14 +168,14 @@ for llm_name in llm_models:
                 
             llm_results = results[llm_name][category]
             completed_samples = len(llm_results.get("answers", []))
-            total_samples = len(prompts_gts[category]["prompts"])
+            total_samples = len(all_prompts[category])
             
             print(f"\nStarting with {category}")
             
             if completed_samples < total_samples:
                 print(f"Continuing {category} experiments for {llm_name}: {completed_samples}/{total_samples} completed")
                 
-                for i, (prompt, gt) in enumerate(zip(prompts_gts[category]["prompts"][completed_samples:], prompts_gts[category]["gts"][completed_samples:])):
+                for i, (prompt, gt) in enumerate(zip(all_prompts[category][completed_samples:], gts[category][completed_samples:])):
                     print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
                     
                     print(prompt[1]["content"])

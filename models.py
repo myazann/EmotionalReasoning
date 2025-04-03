@@ -346,10 +346,10 @@ class LLM:
     @staticmethod
     def parse_think_output(output):
         
-        think_start = output.find("<think>")
+        think_start = output.find("<think>") if output.find("<think>") != -1 else 0
         think_end = output.find("</think>")
         
-        if think_start != -1 and think_end != -1:
+        if think_end != -1:
             reasoning_steps = output[think_start + 7:think_end].strip()
             answer = output[think_end + 8:].strip().strip("[]")
             if len(answer) > 1:
