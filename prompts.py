@@ -48,8 +48,10 @@ def get_all_prompts(dataset, data=None, lang="en", cot=False):
             EU_prompt_emotion = construct_emobench_prompt(task="EU", eu_task="Emotion", lang=lang, cot=cot, 
                                         prompt_params=eu_prompt_emotion_params)
             
+
             eu_prompt_cause_params = eu_prompt_emotion_params.copy()
-            eu_prompt_cause_params["emotions"] = eu_sample["Cause"]["Choices"][lang]
+            eu_prompt_cause_params["choices"] = eu_sample["Cause"]["Choices"][lang]
+            eu_prompt_cause_params["emotions"] = eu_sample["Emotion"]["Label"][lang]
             EU_prompt_cause = construct_emobench_prompt(task="EU", eu_task="Cause", lang=lang, cot=cot, 
                                 prompt_params=eu_prompt_cause_params)
 
@@ -81,7 +83,7 @@ def get_all_prompts(dataset, data=None, lang="en", cot=False):
 
 def construct_tombench_prompt(prompt_params, lang="en", cot=False):
     
-    with open(os.path.join("ToMBench", "prompts.json"), "r") as f:
+    with open(os.path.join("datasets", "ToMBench", "prompts.json"), "r") as f:
         prompts = json.load(f)
     
     cot = "cot" if cot else ""
@@ -109,12 +111,12 @@ def construct_tombench_prompt(prompt_params, lang="en", cot=False):
 
 def construct_emobench_prompt(prompt_params, task, eu_task="Emotion", lang="en", cot=False):
 
-    with open(os.path.join("EmoBench", "data", "dicts.json"), "r") as f:
+    with open(os.path.join("datasets", "EmoBench", "data", "dicts.json"), "r") as f:
         prompts = json.load(f)
     
     cot = "cot" if cot else "no_cot"
     sys_prompt = prompts["Prompts"]["System"][lang]
-    
+    sys_prompt += "The options are numbered starting from 0, with the leftmost option being the first, and so on. Keep in mind that the letter means a number.\n"
     if task == "EU":
         if eu_task not in ["Cause", "Emotion"]:
             raise ValueError(f"EU task {eu_task} not defined")

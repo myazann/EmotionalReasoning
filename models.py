@@ -116,7 +116,7 @@ class LLM:
             elif self.provider == "GGUF":
                 return {
                     "n_gpu_layers": -1,
-                    "verbose": True,
+                    "verbose": False,
                     "n_ctx": self.context_length
                 }
             else:
@@ -301,7 +301,7 @@ class LLM:
             output = response.choices[0].message.content
             if self.provider == "DEEPSEEK" and self.cfg.get("reason"):
                 reasoning_steps = response.choices[0].message.reasoning_content
-                output = f"**Thinking**...\n\n\n{reasoning_steps}\n\n\n**Finished thinking!**\n\n\n{output}"
+                output = f"<think>\n\n\n{reasoning_steps}\n\n\n</think>\n\n\n{output}"
 
         elif self.provider == "ANTHROPIC":
             if prompt[0]["role"] == "system":
@@ -342,3 +342,18 @@ class LLM:
             output = self.parse_json(output)
 
         return output
+
+    @staticmethod
+    def parse_think_output(output):
+        
+        think_start = output.find("<think>")
+        think_end = output.find("</think>")
+        
+        if think_start != -1 and think_end != -1:
+            reasoning_steps = output[think_start + 7:think_end].strip()
+            answer = output[think_end + 8:].strip().strip("[]")
+            if len(answer) > 1:
+                answer = answer[-1]
+            return reasoning_steps, answer
+        else:
+            return None, output

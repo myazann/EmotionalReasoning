@@ -8,7 +8,7 @@ def get_tom_data():
     Returns:
         dict: A dictionary mapping scenario names to lists of samples.
     """
-    tom_data_path = os.path.join("ToMBench", "data")
+    tom_data_path = os.path.join("datasets", "ToMBench", "data")
     
     all_scenarios = get_tom_scenarios()
     
@@ -25,7 +25,7 @@ def get_tom_data():
 
 def get_tom_scenarios():
     
-    tom_data_path = os.path.join("ToMBench", "data")
+    tom_data_path = os.path.join("datasets", "ToMBench", "data")
     all_scenarios = [f for f in os.listdir(tom_data_path) if f.endswith(".jsonl")]
     
     return all_scenarios
@@ -60,20 +60,20 @@ def get_emo_data():
     }
     
     # Load EA data
-    ea_path = os.path.join("EmoBench", "data", "EA", "data.json")
+    ea_path = os.path.join("datasets", "EmoBench", "data", "EA", "data.json")
     if os.path.exists(ea_path):
         with open(ea_path, "r") as f:
             emo_data["EA"] = json.load(f)
     
     # Load EU data
-    eu_path = os.path.join("EmoBench", "data", "EU", "data.json")
+    eu_path = os.path.join("datasets", "EmoBench", "data", "EU", "data.json")
     if os.path.exists(eu_path):
         with open(eu_path, "r") as f:
             emo_data["EU"] = json.load(f)
     
     return emo_data
 
-def get_emo_gts():
+def get_emo_gts(lang="en"):
 
     emo_data = get_emo_data()
     emo_gts = {
@@ -83,20 +83,17 @@ def get_emo_gts():
             "Cause": []
         }
     }
-
-    label_voc = {
-        0: "A",
-        1: "B",
-        2: "C",
-        3: "D" 
-    }
     
     for sample in emo_data["EA"]:
-        emo_gts["EA"].append(label_voc[sample["Label"]])
+        emo_gts["EA"].append(sample["Label"])
     
     for sample in emo_data["EU"]:
-        emo_gts["EU"]["Emotion"].append(sample["Emotion"]["Label"]["en"])
-        emo_gts["EU"]["Cause"].append(sample["Cause"]["Label"]["en"])
+        options = sample["Emotion"]["Choices"][lang]
+        label_idx = options.index(sample["Emotion"]["Label"][lang])
+        emo_gts["EU"]["Emotion"].append(label_idx)
+        options = sample["Cause"]["Choices"][lang]
+        label_idx = options.index(sample["Cause"]["Label"][lang])
+        emo_gts["EU"]["Cause"].append(label_idx)
     
     return emo_gts
 
