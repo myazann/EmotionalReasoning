@@ -356,4 +356,4 @@ class LLM:
                 answer = answer[-1]
             return reasoning_steps, answer
         else:
-            return None, output
+            return None, outputs

@@ -24,12 +24,12 @@ dataset = args.dataset
 results_dir = Path('results')
 results_dir.mkdir(exist_ok=True)
 
-gen_params = {"max_new_tokens": 2048, "temperature": 0.6}
+gen_params = {"max_new_tokens": 4096, "temperature": 0.6}
 llm_models = [
-    "QWEN-QwQ-32B",
     "DEEPSEEK-R1-DISTILL-QWEN-7B",
     "DEEPSEEK-R1-DISTILL-LLAMA-8B",
     "DEEPSEEK-R1",
+    "QWEN-QwQ-32B",
 ]
 
 dataset_data = get_dataset(dataset)
@@ -40,13 +40,12 @@ for llm_name in llm_models:
     print(f"\nProcessing LLM: {llm_name}\n")
     
     llm = LLM(llm_name, gen_params=gen_params)
-    use_sys = True if "DEEPSEEK" in llm_name else False
-    add_think_token = True if "DISTILL" in llm_name else False
+    use_sys = False if "DEEPSEEK" in llm_name else True
     
-    saved_prompts = get_all_prompts(dataset, data=dataset_data, lang=lang, cot=cot, use_sys=True, add_think_token=False)
+    saved_prompts = get_all_prompts(dataset, data=dataset_data, lang=lang, cot=cot, use_sys=True)
     save_prompts(dataset, lang, cot, saved_prompts)
     
-    all_prompts = get_all_prompts(dataset, data=dataset_data, lang=lang, cot=cot, use_sys=use_sys, add_think_token=add_think_token)
+    all_prompts = get_all_prompts(dataset, data=dataset_data, lang=lang, cot=cot, use_sys=use_sys)
     
     if dataset == "emobench":
         print("Running EmoBench experiment...")
