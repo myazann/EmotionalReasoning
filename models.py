@@ -301,7 +301,7 @@ class LLM:
             output = response.choices[0].message.content
             if self.provider == "DEEPSEEK" and self.cfg.get("reason"):
                 reasoning_steps = response.choices[0].message.reasoning_content
-                output = f"<think>\n\n\n{reasoning_steps}\n\n\n</think>\n\n\n{output}"
+                output = f"<think>\n{reasoning_steps}\n\n\n</think>\n{output}"
 
         elif self.provider == "ANTHROPIC":
             if prompt[0]["role"] == "system":
@@ -346,14 +346,12 @@ class LLM:
     @staticmethod
     def parse_think_output(output):
         
-        think_start = output.find("<think>") if output.find("<think>") != -1 else 0
+        think_start = 7 if output.startswith("<think>") else 0
         think_end = output.find("</think>")
         
         if think_end != -1:
-            reasoning_steps = output[think_start + 7:think_end].strip()
+            reasoning_steps = output[think_start:think_end].strip()
             answer = output[think_end + 8:].strip().strip("[]")
-            if len(answer) > 1:
-                answer = answer[-1]
             return reasoning_steps, answer
         else:
-            return None, outputs
+            return None, output

@@ -6,7 +6,7 @@ from pathlib import Path
 from prompts import get_all_prompts
 from exp_datasets import get_dataset, get_gts
 from models import LLM
-from utils import load_existing_results, save_results, print_output, save_prompts
+from utils import load_existing_results, save_results, save_prompts
 
 parser = argparse.ArgumentParser(description='Run experiment with language model')
 parser.add_argument('-l', '--lang', type=str, choices=['en', 'zh'], default='en',
@@ -27,9 +27,9 @@ results_dir.mkdir(exist_ok=True)
 gen_params = {"max_new_tokens": 4096, "temperature": 0.6}
 llm_models = [
     "DEEPSEEK-R1-DISTILL-QWEN-7B",
-    "DEEPSEEK-R1-DISTILL-LLAMA-8B",
+    "DEEPSEEK-R1-DISTILL-LLAMA-8B", 
+    "QWEN-QwQ-32B-GGUF",
     "DEEPSEEK-R1",
-    "QWEN-QwQ-32B",
 ]
 
 dataset_data = get_dataset(dataset)
@@ -40,13 +40,13 @@ for llm_name in llm_models:
     print(f"\nProcessing LLM: {llm_name}\n")
     
     llm = LLM(llm_name, gen_params=gen_params)
-    use_sys = False if "DEEPSEEK" in llm_name else True
+    add_think = True if "DISTILL" in llm_name else False
     
-    saved_prompts = get_all_prompts(dataset, data=dataset_data, lang=lang, cot=cot, use_sys=True)
+    saved_prompts = get_all_prompts(dataset, data=dataset_data, lang=lang, cot=cot)
     save_prompts(dataset, lang, cot, saved_prompts)
-    
-    all_prompts = get_all_prompts(dataset, data=dataset_data, lang=lang, cot=cot, use_sys=use_sys)
-    
+
+    all_prompts = get_all_prompts(dataset, data=dataset_data, lang=lang, cot=cot, add_think=add_think)
+        
     if dataset == "emobench":
         print("Running EmoBench experiment...")
         
@@ -54,7 +54,7 @@ for llm_name in llm_models:
             results[llm_name] = {
                 "EA": {
                     "reasoning_steps": [],
-                    "answers": []
+                    "answers": [],
                 },
                 "EU": {
                     "Emotion": {"reasoning_steps": [], "answers": []},
@@ -74,17 +74,13 @@ for llm_name in llm_models:
             
             for i, (prompt, gt) in enumerate(zip(all_prompts["EA"][completed_samples:], gts["EA"][completed_samples:])):
                 print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
-                
-                print(prompt[1]["content"])
-                print("---")
-                answer = llm.generate(prompt)
-                reasoning_steps, answer = llm.parse_think_output(answer)
-                print_output(reasoning_steps, answer, gt)
-                print("---")
+                output = llm.generate(prompt)
+
+                reasoning_steps, answer = llm.parse_think_output(output)
                 sys.stdout.flush()
-                
                 llm_results["reasoning_steps"].append(reasoning_steps)
                 llm_results["answers"].append(answer)
+                
                 save_results(results, dataset, lang, cot)
         else:
             print(f"EA experiments already completed for {llm_name}")
@@ -103,12 +99,8 @@ for llm_name in llm_models:
             for i, (prompt, gt) in enumerate(zip(all_prompts["EU"]["Emotion"][completed_samples:], gts["EU"]["Emotion"][completed_samples:])):
                 print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
                 
-                print(prompt[1]["content"])
-                print("---")
-                answer = llm.generate(prompt)
-                reasoning_steps, answer = llm.parse_think_output(answer)
-                print_output(reasoning_steps, answer, gt)
-                print("---")
+                output = llm.generate(prompt)
+                reasoning_steps, answer = llm.parse_think_output(output)
                 sys.stdout.flush()
                 
                 llm_results["reasoning_steps"].append(reasoning_steps)
@@ -130,12 +122,8 @@ for llm_name in llm_models:
             for i, (prompt, gt) in enumerate(zip(all_prompts["EU"]["Cause"][completed_samples:], gts["EU"]["Cause"][completed_samples:])):
                 print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
                 
-                print(prompt[1]["content"])
-                print("---")
-                answer = llm.generate(prompt)
-                reasoning_steps, answer = llm.parse_think_output(answer)
-                print_output(reasoning_steps, answer, gt)
-                print("---")
+                output = llm.generate(prompt)
+                reasoning_steps, answer = llm.parse_think_output(output)
                 sys.stdout.flush()
                 
                 llm_results["reasoning_steps"].append(reasoning_steps)
@@ -177,12 +165,8 @@ for llm_name in llm_models:
                 for i, (prompt, gt) in enumerate(zip(all_prompts[category][completed_samples:], gts[category][completed_samples:])):
                     print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
                     
-                    print(prompt[1]["content"])
-                    print("---")
-                    answer = llm.generate(prompt)
-                    reasoning_steps, answer = llm.parse_think_output(answer)
-                    print_output(reasoning_steps, answer, gt)
-                    print("---")
+                    output = llm.generate(prompt)
+                    reasoning_steps, answer = llm.parse_think_output(output)
                     sys.stdout.flush()
                     
                     llm_results["reasoning_steps"].append(reasoning_steps)

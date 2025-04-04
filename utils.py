@@ -71,13 +71,3 @@ def save_results(results, dataset, lang, cot):
     filename = get_results_filename(dataset, lang, cot)
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
-
-def print_output(reasoning_steps, answer, gt):
-    print("---")
-    print(reasoning_steps)
-    print("---")
-    print(answer)
-    print("---")
-    print(gt)
-    print("---")
-    sys.stdout.flush()
