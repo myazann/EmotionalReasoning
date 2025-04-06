@@ -351,7 +351,7 @@ class LLM:
         
         if think_end != -1:
             reasoning_steps = output[think_start:think_end].strip()
-            answer = output[think_end + 8:].strip().strip("[]")
+            answer = output[think_end + 8:].strip()
             return reasoning_steps, answer
         else:
             return None, output
