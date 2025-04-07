@@ -115,7 +115,7 @@ class LLM:
                 }
             elif self.provider == "GGUF":
                 return {
-                    "n_gpu_layers": -1,
+                    "n_gpu_layers": 56,
                     "verbose": False,
                     "n_ctx": self.context_length
                 }
@@ -202,12 +202,8 @@ class LLM:
         else:
             raise TypeError("Prompt must be either a string, a list, or None.")
 
-        # If a default prompt exists and prompt was not already the default,
-        # prepend the default_prompt (avoid duplicating if prompt came from default_prompt).
         if not (prompt == default_prompt) and self.default_prompt:
             prompt = default_prompt + prompt
-
-        # Format each message's content if parameters are provided.
         if params and isinstance(params, dict):
             for message in prompt:
                 if "content" in message and isinstance(message["content"], str):
@@ -216,15 +212,14 @@ class LLM:
                     except Exception as e:
                         raise ValueError("Error formatting prompt content: " + str(e))
         return prompt
-
+    
     def get_avail_space(self, prompt):
 
         avail_space = self.context_length - self.gen_params[self.name_token_var] - self.count_tokens(prompt)
-        if avail_space <= 0:
-            return None
+        if avail_space > 0:
+            return avail_space
         else:
-            return avail_space   
-        
+            return None
     def trunc_chat_history(self, chat_history, hist_dedic_space=0.2):
 
         hist_dedic_space = int(self.context_length*0.2)
