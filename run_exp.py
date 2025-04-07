@@ -27,9 +27,9 @@ results_dir.mkdir(exist_ok=True)
 gen_params = {"max_new_tokens": 4096, "temperature": 0.6}
 llm_models = [
     "DEEPSEEK-R1-DISTILL-QWEN-7B",
-    "DEEPSEEK-R1-DISTILL-LLAMA-8B", 
     "QWEN-QwQ-32B-GGUF",
     "DEEPSEEK-R1",
+    "DEEPSEEK-R1-DISTILL-LLAMA-8B", 
 ]
 
 dataset_data = get_dataset(dataset)
