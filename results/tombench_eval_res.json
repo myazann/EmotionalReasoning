@@ -1,0 +1,134 @@
+{
+    "DEEPSEEK-R1-DISTILL-QWEN-7B": {
+        "Knowledge-Attention Links": {
+            "accuracy": 0.25,
+            "f1": 0.187
+        },
+        "Multiple Desires": {
+            "accuracy": 0.45,
+            "f1": 0.298
+        },
+        "Discrepant Desires": {
+            "accuracy": 0.3,
+            "f1": 0.246
+        },
+        "Faux-pas Recognition Test": {
+            "accuracy": 0.616,
+            "f1": 0.227
+        },
+        "Moral Emotions": {
+            "accuracy": 0.625,
+            "f1": 0.505
+        },
+        "Scalar Implicature Test": {
+            "accuracy": 0.415,
+            "f1": 0.117
+        },
+        "Persuasion Story Task": {
+            "accuracy": 0.45,
+            "f1": 0.363
+        },
+        "Unexpected Outcome Test": {
+            "accuracy": 0.6,
+            "f1": 0.4
+        },
+        "Discrepant Emotions": {
+            "accuracy": 0.425,
+            "f1": 0.39
+        },
+        "Ambiguous Story Task": {
+            "accuracy": 0.435,
+            "f1": 0.21
+        },
+        "Knowledge-Pretend Play Links": {
+            "accuracy": 0.067,
+            "f1": 0.044
+        },
+        "Hidden Emotions": {
+            "accuracy": 0.512,
+            "f1": 0.504
+        },
+        "Strange Story Task": {
+            "accuracy": 0.58,
+            "f1": 0.432
+        },
+        "Hinting Task Test": {
+            "accuracy": 0.379,
+            "f1": 0.376
+        },
+        "Emotion Regulation": {
+            "accuracy": 0.3,
+            "f1": 0.279
+        },
+        "False Belief Task": {
+            "accuracy": 0.545,
+            "f1": 0.245
+        },
+        "Discrepant Intentions": {
+            "accuracy": 0.625,
+            "f1": 0.619
+        },
+        "Percepts-Knowledge Links": {
+            "accuracy": 0.575,
+            "f1": 0.315
+        },
+        "Prediction of Actions": {
+            "accuracy": 0.35,
+            "f1": 0.346
+        },
+        "Completion of Failed Actions": {
+            "accuracy": 0.3,
+            "f1": 0.266
+        }
+    },
+    "QWEN-QwQ-32B-GGUF": {
+        "Knowledge-Attention Links": {
+            "accuracy": 0.5,
+            "f1": 0.423
+        },
+        "Multiple Desires": {
+            "accuracy": 0.9,
+            "f1": 0.775
+        },
+        "Discrepant Desires": {
+            "accuracy": 0.45,
+            "f1": 0.461
+        },
+        "Faux-pas Recognition Test": {
+            "accuracy": 0.72,
+            "f1": 0.484
+        },
+        "Moral Emotions": {
+            "accuracy": 0.8,
+            "f1": 0.649
+        },
+        "Scalar Implicature Test": {
+            "accuracy": 0.47,
+            "f1": 0.082
+        },
+        "Persuasion Story Task": {
+            "accuracy": 0.6,
+            "f1": 0.483
+        },
+        "Unexpected Outcome Test": {
+            "accuracy": 0.713,
+            "f1": 0.358
+        },
+        "Discrepant Emotions": {
+            "accuracy": 0.825,
+            "f1": 0.854
+        },
+        "Ambiguous Story Task": {
+            "accuracy": 0.745,
+            "f1": 0.322
+        },
+        "Knowledge-Pretend Play Links": {
+            "accuracy": 0.3,
+            "f1": 0.155
+        },
+        "Hidden Emotions": {
+            "accuracy": 0.738,
+            "f1": 0.72
+        }
+    }
+}

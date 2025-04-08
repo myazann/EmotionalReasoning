@@ -1,0 +1,18 @@
+{
+    "DEEPSEEK-R1-DISTILL-QWEN-7B": {
+        "EA": {
+            "accuracy": 0.48,
+            "f1": 0.204
+        },
+        "EU": {
+            "Emotion": {
+                "accuracy": 0.245,
+                "f1": 0.097
+            },
+            "Cause": {
+                "accuracy": 0.575,
+                "f1": 0.241
+            }
+        }
+    }
+}
