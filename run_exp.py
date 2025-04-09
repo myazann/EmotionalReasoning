@@ -38,7 +38,6 @@ results = load_existing_results(dataset, lang, cot)
 for llm_name in llm_models:
     print(f"\nProcessing LLM: {llm_name}\n")
     
-    llm = LLM(llm_name, gen_params=gen_params)
     add_think = True if "DISTILL" in llm_name else False
     
     saved_prompts = get_all_prompts(dataset, data=dataset_data, lang=lang, cot=cot)
@@ -70,6 +69,7 @@ for llm_name in llm_models:
         
         if completed_samples < total_samples:
             print(f"Continuing EA experiments for {llm_name}: {completed_samples}/{total_samples} completed")
+            llm = LLM(llm_name, gen_params=gen_params)
             
             for i, (prompt, gt) in enumerate(zip(all_prompts["EA"][completed_samples:], gts["EA"][completed_samples:])):
                 print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
@@ -94,6 +94,7 @@ for llm_name in llm_models:
         
         if completed_samples < total_samples:
             print(f"Continuing EU-Emotion experiments for {llm_name}: {completed_samples}/{total_samples} completed")
+            llm = LLM(llm_name, gen_params=gen_params)
             
             for i, (prompt, gt) in enumerate(zip(all_prompts["EU"]["Emotion"][completed_samples:], gts["EU"]["Emotion"][completed_samples:])):
                 print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
@@ -117,6 +118,7 @@ for llm_name in llm_models:
         
         if completed_samples < total_samples:
             print(f"Continuing EU-Cause experiments for {llm_name}: {completed_samples}/{total_samples} completed")
+            llm = LLM(llm_name, gen_params=gen_params)
             
             for i, (prompt, gt) in enumerate(zip(all_prompts["EU"]["Cause"][completed_samples:], gts["EU"]["Cause"][completed_samples:])):
                 print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
@@ -160,6 +162,7 @@ for llm_name in llm_models:
             
             if completed_samples < total_samples:
                 print(f"Continuing {category} experiments for {llm_name}: {completed_samples}/{total_samples} completed")
+                llm = LLM(llm_name, gen_params=gen_params)
                 
                 for i, (prompt, gt) in enumerate(zip(all_prompts[category][completed_samples:], gts[category][completed_samples:])):
                     print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
