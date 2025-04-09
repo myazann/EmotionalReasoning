@@ -1,17 +1,259 @@
 {
     "DEEPSEEK-R1-DISTILL-QWEN-7B": {
         "EA": {
-            "accuracy": 0.48,
-            "f1": 0.204
+            "overall": {
+                "accuracy": 0.48,
+                "f1": 0.204,
+                "sample_count": 200
+            },
+            "problems": {
+                "Interpersonal": {
+                    "accuracy": 0.48,
+                    "f1": 0.304,
+                    "sample_count": 100
+                },
+                "Self": {
+                    "accuracy": 0.48,
+                    "f1": 0.229,
+                    "sample_count": 100
+                }
+            },
+            "relationships": {
+                "Personal": {
+                    "accuracy": 0.45,
+                    "f1": 0.19,
+                    "sample_count": 100
+                },
+                "Social": {
+                    "accuracy": 0.51,
+                    "f1": 0.279,
+                    "sample_count": 100
+                }
+            },
+            "problem_relationship_pairs": {
+                "Interpersonal:Personal": {
+                    "accuracy": 0.4,
+                    "f1": 0.24,
+                    "sample_count": 50
+                },
+                "Interpersonal:Social": {
+                    "accuracy": 0.56,
+                    "f1": 0.367,
+                    "sample_count": 50
+                },
+                "Self:Personal": {
+                    "accuracy": 0.5,
+                    "f1": 0.247,
+                    "sample_count": 50
+                },
+                "Self:Social": {
+                    "accuracy": 0.46,
+                    "f1": 0.288,
+                    "sample_count": 50
+                }
+            }
         },
         "EU": {
             "Emotion": {
-                "accuracy": 0.245,
-                "f1": 0.097
+                "overall": {
+                    "accuracy": 0.245,
+                    "f1": 0.097,
+                    "sample_count": 200
+                },
+                "complex_emotions": {
+                    "accuracy": 0.286,
+                    "f1": 0.1,
+                    "sample_count": 49,
+                    "sub_categories": {
+                        "emotion_transition": {
+                            "accuracy": 0.267,
+                            "f1": 0.19,
+                            "sample_count": 15
+                        },
+                        "mixture_of_emotions": {
+                            "accuracy": 0.214,
+                            "f1": 0.066,
+                            "sample_count": 14
+                        },
+                        "unexpected_outcome": {
+                            "accuracy": 0.35,
+                            "f1": 0.1,
+                            "sample_count": 20
+                        }
+                    }
+                },
+                "personal_beliefs_and_experiences": {
+                    "accuracy": 0.232,
+                    "f1": 0.126,
+                    "sample_count": 56,
+                    "sub_categories": {
+                        "cultural_value": {
+                            "accuracy": 0.174,
+                            "f1": 0.101,
+                            "sample_count": 23
+                        },
+                        "sentimental_value": {
+                            "accuracy": 0.375,
+                            "f1": 0.232,
+                            "sample_count": 16
+                        },
+                        "persona": {
+                            "accuracy": 0.176,
+                            "f1": 0.076,
+                            "sample_count": 17
+                        }
+                    }
+                },
+                "emotional_cues": {
+                    "accuracy": 0.321,
+                    "f1": 0.242,
+                    "sample_count": 28,
+                    "sub_categories": {
+                        "vocal_cues": {
+                            "accuracy": 0.385,
+                            "f1": 0.343,
+                            "sample_count": 13
+                        },
+                        "visual_cues": {
+                            "accuracy": 0.267,
+                            "f1": 0.219,
+                            "sample_count": 15
+                        }
+                    }
+                },
+                "perspective_taking": {
+                    "accuracy": 0.194,
+                    "f1": 0.112,
+                    "sample_count": 67,
+                    "sub_categories": {
+                        "faux_pas": {
+                            "accuracy": 0.32,
+                            "f1": 0.221,
+                            "sample_count": 25
+                        },
+                        "strange_story": {
+                            "accuracy": 0.062,
+                            "f1": 0.028,
+                            "sample_count": 16
+                        },
+                        "false_belief": {
+                            "accuracy": 0.154,
+                            "f1": 0.063,
+                            "sample_count": 26
+                        }
+                    }
+                }
             },
             "Cause": {
-                "accuracy": 0.575,
-                "f1": 0.241
+                "overall": {
+                    "accuracy": 0.575,
+                    "f1": 0.241,
+                    "sample_count": 200
+                },
+                "complex_emotions": {
+                    "accuracy": 0.571,
+                    "f1": 0.386,
+                    "sample_count": 49,
+                    "sub_categories": {
+                        "emotion_transition": {
+                            "accuracy": 0.533,
+                            "f1": 0.367,
+                            "sample_count": 15
+                        },
+                        "mixture_of_emotions": {
+                            "accuracy": 0.429,
+                            "f1": 0.254,
+                            "sample_count": 14
+                        },
+                        "unexpected_outcome": {
+                            "accuracy": 0.7,
+                            "f1": 0.476,
+                            "sample_count": 20
+                        }
+                    }
+                },
+                "personal_beliefs_and_experiences": {
+                    "accuracy": 0.554,
+                    "f1": 0.307,
+                    "sample_count": 56,
+                    "sub_categories": {
+                        "cultural_value": {
+                            "accuracy": 0.609,
+                            "f1": 0.402,
+                            "sample_count": 23
+                        },
+                        "sentimental_value": {
+                            "accuracy": 0.5,
+                            "f1": 0.334,
+                            "sample_count": 16
+                        },
+                        "persona": {
+                            "accuracy": 0.529,
+                            "f1": 0.305,
+                            "sample_count": 17
+                        }
+                    }
+                },
+                "emotional_cues": {
+                    "accuracy": 0.679,
+                    "f1": 0.416,
+                    "sample_count": 28,
+                    "sub_categories": {
+                        "vocal_cues": {
+                            "accuracy": 0.769,
+                            "f1": 0.505,
+                            "sample_count": 13
+                        },
+                        "visual_cues": {
+                            "accuracy": 0.6,
+                            "f1": 0.456,
+                            "sample_count": 15
+                        }
+                    }
+                },
+                "perspective_taking": {
+                    "accuracy": 0.552,
+                    "f1": 0.347,
+                    "sample_count": 67,
+                    "sub_categories": {
+                        "faux_pas": {
+                            "accuracy": 0.6,
+                            "f1": 0.472,
+                            "sample_count": 25
+                        },
+                        "strange_story": {
+                            "accuracy": 0.5,
+                            "f1": 0.319,
+                            "sample_count": 16
+                        },
+                        "false_belief": {
+                            "accuracy": 0.538,
+                            "f1": 0.416,
+                            "sample_count": 26
+                        }
+                    }
+                }
+            },
+            "overall": {
+                "accuracy": 0.41,
+                "f1": 0.169,
+                "sample_count": 400
+            }
+        }
+    },
+    "QWEN-QwQ-32B-GGUF": {
+        "EA": {
+            "overall": {},
+            "problems": {},
+            "relationships": {},
+            "problem_relationship_pairs": {}
+        },
+        "EU": {
+            "Emotion": {
+                "overall": {}
+            },
+            "Cause": {
+                "overall": {}
             }
         }
     }

@@ -2,12 +2,7 @@ import os
 import json
 
 def get_tom_data():
-    """
-    Gets the ToMBench dataset samples.
-    
-    Returns:
-        dict: A dictionary mapping scenario names to lists of samples.
-    """
+
     tom_data_path = os.path.join("datasets", "ToMBench", "data")
     
     all_scenarios = get_tom_scenarios()
@@ -30,6 +25,18 @@ def get_tom_scenarios():
     
     return all_scenarios
 
+def get_tom_abilities():
+    
+    dataset = get_tom_data()
+    
+    all_abilities = []
+    for scenario in dataset:
+        scenario_data = dataset[scenario]
+        for sample in scenario_data:
+            all_abilities.append(sample["能力\nABILITY"])
+    
+    return all_abilities
+
 def get_tom_gts():
     
     all_scenarios = get_tom_scenarios()
@@ -48,24 +55,17 @@ def get_tom_gts():
     return tombench_gts
 
 def get_emo_data():
-    """
-    Gets the EmoBench dataset samples.
-    
-    Returns:
-        dict: A dictionary containing 'EA' and 'EU' data.
-    """
+
     emo_data = {
         "EA": None,
         "EU": None
     }
     
-    # Load EA data
     ea_path = os.path.join("datasets", "EmoBench", "data", "EA", "data.json")
     if os.path.exists(ea_path):
         with open(ea_path, "r") as f:
             emo_data["EA"] = json.load(f)
     
-    # Load EU data
     eu_path = os.path.join("datasets", "EmoBench", "data", "EU", "data.json")
     if os.path.exists(eu_path):
         with open(eu_path, "r") as f:
@@ -97,47 +97,51 @@ def get_emo_gts(lang="en"):
     
     return emo_gts
 
-def get_emo_ea_problems():
+def get_emo_ea_problems_and_relationships():
 
     emo_data = get_emo_data()
     problems = []
-    for sample in emo_data["EA"]:
-        problems.append(sample["Problem"])
-    
-    return problems
-
-def get_emo_ea_relationships():
-
-    emo_data = get_emo_data()
     relationships = []
     for sample in emo_data["EA"]:
+        problems.append(sample["Problem"])
         relationships.append(sample["Relationship"])
     
-    return relationships
+    return problems, relationships
+
+def get_emo_eu_cat_dict():
+    return {
+        "complex_emotions": {
+            "emotion_transition",
+            "mixture_of_emotions",
+            "unexpected_outcome"
+        },
+        "personal_beliefs_and_experiences": {
+            "cultural_value",
+            "sentimental_value",
+            "persona"
+        },
+        "emotional_cues": {
+            "vocal_cues",
+            "visual_cues"
+        },
+        "perspective_taking": {
+            "faux_pas",
+            "strange_story",
+            "false_belief"
+        }
+    }
 
 def get_emo_eu_cats():
 
     cats = []
     emo_data = get_emo_data()
-
     for sample in emo_data["EU"]:
         cats.append(sample["Category"])
     
     return cats
 
 def get_gts(dataset_name):
-    """
-    Gets ground truth labels for the specified dataset.
-    
-    Args:
-        dataset_name (str): Name of the dataset, either 'emobench' or 'tombench'.
-        
-    Returns:
-        dict: Ground truth labels.
-        
-    Raises:
-        ValueError: If dataset_name is not recognized.
-    """
+
     if dataset_name.lower() == "emobench":
         return get_emo_gts()
     elif dataset_name.lower() == "tombench":
@@ -146,30 +150,10 @@ def get_gts(dataset_name):
         raise ValueError(f"Dataset {dataset_name} not recognized. Use 'emobench' or 'tombench'.")
 
 def get_dataset(dataset_name):
-    """
-    Gets data for the specified dataset.
-    
-    Args:
-        dataset_name (str): Name of the dataset, either 'emobench' or 'tombench'.
-        
-    Returns:
-        dict: Dataset samples.
-        
-    Raises:
-        ValueError: If dataset_name is not recognized.
-    """
+
     if dataset_name.lower() == "emobench":
         return get_emo_data()
     elif dataset_name.lower() == "tombench":
         return get_tom_data()
-    else:
-        raise ValueError(f"Dataset {dataset_name} not recognized. Use 'emobench' or 'tombench'.")
-
-
-def get_gts(dataset_name):
-    if dataset_name.lower() == "emobench":
-        return get_emo_gts()
-    elif dataset_name.lower() == "tombench":
-        return get_tom_gts()
     else:
         raise ValueError(f"Dataset {dataset_name} not recognized. Use 'emobench' or 'tombench'.")
