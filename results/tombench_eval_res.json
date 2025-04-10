@@ -303,7 +303,7 @@
         },
         "overall": {
             "accuracy": 0.529,
-            "f1": 0.534,
+            "f1": 0.068,
             "sample_count": 2860
         }
     },
@@ -611,8 +611,63 @@
         },
         "overall": {
             "accuracy": 0.758,
-            "f1": 0.763,
+            "f1": 0.071,
             "sample_count": 2860
+        }
+    },
+    "DEEPSEEK-R1": {
+        "topics": {
+            "Discrepant Desires": {
+                "accuracy": 0.55,
+                "f1": 0.546,
+                "sample_count": 20
+            },
+            "Multiple Desires": {
+                "accuracy": 1.0,
+                "f1": 1.0,
+                "sample_count": 20
+            },
+            "Knowledge-Attention Links": {
+                "accuracy": 0.5,
+                "f1": 0.405,
+                "sample_count": 20
+            }
+        },
+        "abilities": {
+            "desire": {
+                "accuracy": 0.775,
+                "f1": 0.725,
+                "sample_count": 40,
+                "sub_abilities": {
+                    "discrepant desires": {
+                        "accuracy": 0.55,
+                        "f1": 0.546,
+                        "sample_count": 20
+                    },
+                    "multiple desires": {
+                        "accuracy": 1.0,
+                        "f1": 1.0,
+                        "sample_count": 20
+                    }
+                }
+            },
+            "knowledge": {
+                "accuracy": 0.5,
+                "f1": 0.405,
+                "sample_count": 20,
+                "sub_abilities": {
+                    "knowledge-attention links": {
+                        "accuracy": 0.5,
+                        "f1": 0.405,
+                        "sample_count": 20
+                    }
+                }
+            }
+        },
+        "overall": {
+            "accuracy": 0.683,
+            "f1": 0.531,
+            "sample_count": 60
         }
     }
 }

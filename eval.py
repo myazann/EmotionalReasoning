@@ -153,7 +153,7 @@ if dataset == "tombench":
         overall_accuracy = overall_correct / len(flat_gts) if len(flat_gts) > 0 else 0
         
         try:
-            overall_f1 = f1_score(flat_gts, flat_preds, average="weighted")
+            overall_f1 = f1_score(flat_gts, flat_preds, average="macro")
         except:
             overall_f1 = 0
         
@@ -293,7 +293,12 @@ elif dataset == "emobench":
         if len(EU_cause_results["answers"]) == len(gts["EU"]["Cause"]):
             gt_cause = [str(gt) for gt in gts["EU"]["Cause"]]
             answer_cause = EU_cause_results["answers"]
-            parsed_answers = [answer.strip()[-1] for answer in answer_cause]
+            parsed_answers = []
+            for answer in answer_cause:
+                try:
+                    parsed_answers.append(answer.strip()[-1])
+                except:
+                    parsed_answers.append(-1)
             
             correct = sum(1 for gt, pred in zip(gt_cause, parsed_answers) if gt == pred)
             accuracy = correct / len(gt_cause) if len(gt_cause) > 0 else 0
@@ -383,7 +388,12 @@ elif dataset == "emobench":
         if len(EU_emotion_results["answers"]) == len(gts["EU"]["Emotion"]):
             gt_emotion = [str(gt) for gt in gts["EU"]["Emotion"]]
             answer_emotion = EU_emotion_results["answers"]
-            parsed_answers = [answer.strip()[-1] for answer in answer_emotion]
+            parsed_answers = []
+            for answer in answer_emotion:
+                try:
+                    parsed_answers.append(answer.strip()[-1])
+                except:
+                    parsed_answers.append(-1)
             
             correct = sum(1 for gt, pred in zip(gt_emotion, parsed_answers) if gt == pred)
             accuracy = correct / len(gt_emotion) if len(gt_emotion) > 0 else 0
@@ -487,20 +497,7 @@ elif dataset == "emobench":
             cause_acc = eval_res[llm_name]["EU"]["Cause"]["overall"]["accuracy"]
             cause_f1 = eval_res[llm_name]["EU"]["Cause"]["overall"]["f1"]
             cause_count = eval_res[llm_name]["EU"]["Cause"]["overall"]["sample_count"]
-            
-            total_count = emotion_count + cause_count
-            overall_eu_acc = ((emotion_acc * emotion_count) + (cause_acc * cause_count)) / total_count if total_count > 0 else 0
-            overall_eu_f1 = ((emotion_f1 * emotion_count) + (cause_f1 * cause_count)) / total_count if total_count > 0 else 0
-            
-            eval_res[llm_name]["EU"]["overall"] = {
-                "accuracy": round(overall_eu_acc, 3),
-                "f1": round(overall_eu_f1, 3),
-                "sample_count": total_count
-            }
-
-        
-
-            
+                        
         print(f"\nFinished {llm_name}!\n")
         
 with open(os.path.join("results", f"{dataset}_eval_res.json"), "w") as f:

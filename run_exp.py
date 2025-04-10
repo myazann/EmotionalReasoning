@@ -176,5 +176,5 @@ for llm_name in llm_models:
                     save_results(results, dataset, lang, cot)
             else:
                 print(f"{category} experiments already completed for {llm_name}")
-else:
-    raise ValueError("Invalid dataset: {}".format(dataset))
+    else:
+        raise ValueError("Invalid dataset: {}".format(dataset))
