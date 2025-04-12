@@ -1,15 +1,12 @@
 import argparse
-import sys
 import json
-import os
 from pathlib import Path
 from collections import defaultdict
 
-
 from utils import load_existing_results
-from exp_datasets import get_gts, get_emo_eu_cats, get_emo_eu_cat_dict, get_emo_ea_problems_and_relationships, get_dataset, get_tom_abilities
+from exp_datasets import get_gts
 
-parser = argparse.ArgumentParser(description='Run experiment with language model')
+parser = argparse.ArgumentParser(description='Evaluate LLM performance')
 parser.add_argument('-l', '--lang', type=str, choices=['en', 'zh'], default='en',
                     help='Language for the experiment (en or zh)')
 parser.add_argument('--cot', action='store_true', default=False,
@@ -24,134 +21,108 @@ dataset = args.dataset
 
 results_dir = Path('results')
 
+# Load ground truth answers
 gts = get_gts(dataset)
+# Load restructured results directly
 results = load_existing_results(dataset, lang, cot)
 
 eval_res = {}
 
 if dataset == "tombench":
-    for llm_name in results:
+    # Process tombench results
+    for llm_name, model_samples in results.items():
+        print(f"Evaluating {llm_name} on tombench dataset...")
         eval_res[llm_name] = {}
+        
+        # Create containers for different metrics
+        topic_metrics = defaultdict(lambda: {"correct": 0, "total": 0})
+        ability_metrics = defaultdict(lambda: {"correct": 0, "total": 0, "sub_abilities": defaultdict(lambda: {"correct": 0, "total": 0})})
+        overall_correct = 0
+        overall_total = 0
+        
+        # Group samples by topic
+        samples_by_topic = defaultdict(list)
+        for sample in model_samples:
+            topic = sample["topic"]
+            samples_by_topic[topic].append(sample)
+        
+        # Evaluate each topic separately to maintain the correct order
+        for topic, topic_samples in samples_by_topic.items():
+                
+            # Make sure we don't process more samples than we have ground truth for
+            gt_list = gts[topic]
+            # Sort samples to ensure consistent order
+            sorted_samples = sorted(topic_samples, key=lambda x: model_samples.index(x))
+            
+            # Process only up to the number of ground truth samples
+            for i, (sample, gt) in enumerate(zip(sorted_samples[:len(gt_list)], gt_list)):
+                main_ability = sample["main_ability"]
+                sub_ability = sample["sub_ability"]
+                answer = sample["answer"]
+                
+                # Extract the predicted answer
+                parsed_answer = answer.split("\n\n")[-1].strip("[]")
+                
+                # Check if the answer is correct
+                is_correct = (gt == parsed_answer)
+                
+                # Update metrics
+                if is_correct:
+                    topic_metrics[topic]["correct"] += 1
+                    ability_metrics[main_ability]["correct"] += 1
+                    ability_metrics[main_ability]["sub_abilities"][sub_ability]["correct"] += 1
+                    overall_correct += 1
+                
+                # Update totals
+                topic_metrics[topic]["total"] += 1
+                ability_metrics[main_ability]["total"] += 1
+                ability_metrics[main_ability]["sub_abilities"][sub_ability]["total"] += 1
+                overall_total += 1
+            
+            # Report progress
+            print(f"  Processed {len(gt_list)} samples for topic {topic}")
+        
+        # Calculate accuracies and create output structure
         topic_res = {}
-        
-        flat_gts = []
-        flat_preds = []
-        
-        all_samples_with_abilities = []
-        sample_index = 0
-        
-        tom_data = get_dataset("tombench")
-        
-        for topic in results[llm_name]:
-            if len(gts[topic]) == len(results[llm_name][topic]["answers"]):
-                gt_topic = gts[topic]
-                answer_topic = results[llm_name][topic]["answers"]
-                parsed_answers = [answer.split("\n\n")[-1].strip("[]") for answer in answer_topic]
-                
-                flat_gts.extend(gt_topic)
-                flat_preds.extend(parsed_answers)
-                
-                topic_data = tom_data[topic]
-                for i, (gt, pred) in enumerate(zip(gt_topic, parsed_answers)):
-                    if i < len(topic_data):
-                        ability = topic_data[i]["能力\nABILITY"]
-                        all_samples_with_abilities.append((gt, pred, ability))
-                    else:
-                        print(f"Warning: Couldn't match ability for sample {i} in topic {topic}")
-                
-                correct = sum(1 for gt, pred in zip(gt_topic, parsed_answers) if gt == pred)
-                accuracy = correct / len(gt_topic) if len(gt_topic) > 0 else 0
-                
-                topic_res[topic] = {
-                    "accuracy": round(accuracy, 3),
-                    "sample_count": len(gt_topic)
-                }
-            else:
-                print(f"{topic} not completed for {llm_name}")
-        
-        ability_results = defaultdict(list)
-        main_ability_metrics = {}
-        
-        for gt, pred, ability in all_samples_with_abilities:
-            ability_results[ability].append((gt, pred))
-            
-            if "location false beliefs belief: second-order beliefs" in ability.lower():
-                main_ability = "belief"
-                sub_ability = "second-order beliefs"
-            elif "content false beliefs belief: second-order beliefs" in ability.lower():
-                main_ability = "belief"
-                sub_ability = "second-order beliefs"
-            elif ":" in ability:
-                main_ability, sub_ability = ability.split(":", 1)
-                main_ability = main_ability.strip().lower()
-                sub_ability = sub_ability.strip().lower()
-                
-                # Merge the two desires influence sub-abilities
-                if sub_ability == "desires influence on actions" or sub_ability == "desires influence on emotions (beliefs)":
-                    sub_ability = "desires influence on actions and emotions"
-            else:
-                main_ability = ability.strip().lower()
-                sub_ability = "general"
-            
-            if main_ability not in main_ability_metrics:
-                main_ability_metrics[main_ability] = {
-                    "samples": [],
-                    "sub_abilities": {}
-                }
-            
-            main_ability_metrics[main_ability]["samples"].append((gt, pred))
-            
-            if sub_ability not in main_ability_metrics[main_ability]["sub_abilities"]:
-                main_ability_metrics[main_ability]["sub_abilities"][sub_ability] = []
-            
-            main_ability_metrics[main_ability]["sub_abilities"][sub_ability].append((gt, pred))
+        for topic, metrics in topic_metrics.items():
+            accuracy = metrics["correct"] / metrics["total"] if metrics["total"] > 0 else 0
+            topic_res[topic] = {
+                "accuracy": round(accuracy, 3),
+                "sample_count": metrics["total"]
+            }
         
         abilities_output = {}
-        
-        for main_ability, data in main_ability_metrics.items():
-            main_samples = data["samples"]
-            main_gt = [pair[0] for pair in main_samples]
-            main_pred = [pair[1] for pair in main_samples]
-            
-            correct = sum(1 for gt, pred in main_samples if gt == pred)
-            accuracy = correct / len(main_samples) if len(main_samples) > 0 else 0
-            
+        for main_ability, metrics in ability_metrics.items():
+            accuracy = metrics["correct"] / metrics["total"] if metrics["total"] > 0 else 0
             abilities_output[main_ability] = {
                 "accuracy": round(accuracy, 3),
-                "sample_count": len(main_samples),
+                "sample_count": metrics["total"],
                 "sub_abilities": {}
             }
             
-            for sub_ability, sub_samples in data["sub_abilities"].items():
-                sub_gt = [pair[0] for pair in sub_samples]
-                sub_pred = [pair[1] for pair in sub_samples]
-                
-                correct = sum(1 for gt, pred in sub_samples if gt == pred)
-                accuracy = correct / len(sub_samples) if len(sub_samples) > 0 else 0
-                
+            for sub_ability, sub_metrics in metrics["sub_abilities"].items():
+                sub_accuracy = sub_metrics["correct"] / sub_metrics["total"] if sub_metrics["total"] > 0 else 0
                 abilities_output[main_ability]["sub_abilities"][sub_ability] = {
-                    "accuracy": round(accuracy, 3),
-                    "sample_count": len(sub_samples)
+                    "accuracy": round(sub_accuracy, 3),
+                    "sample_count": sub_metrics["total"]
                 }
         
-        overall_correct = sum(1 for gt, pred in zip(flat_gts, flat_preds) if gt == pred)
-        overall_accuracy = overall_correct / len(flat_gts) if len(flat_gts) > 0 else 0
+        overall_accuracy = overall_correct / overall_total if overall_total > 0 else 0
         
+        # Create final evaluation structure
         eval_res[llm_name] = {
             "topics": topic_res,
             "abilities": abilities_output,
             "overall": {
                 "accuracy": round(overall_accuracy, 3),
-                "sample_count": len(flat_gts)
+                "sample_count": overall_total
             }
         }
-        
+
 elif dataset == "emobench":
-    eu_categories = get_emo_eu_cats()
-    eu_cat_dict = get_emo_eu_cat_dict()
-    ea_problems, ea_relationships = get_emo_ea_problems_and_relationships()
-    
-    for llm_name in results:
+    # Process emobench results
+    for llm_name, model_data in results.items():
+        print(f"Evaluating {llm_name} on emobench dataset...")
         eval_res[llm_name] = {
             "EA": {
                 "overall": {},
@@ -162,9 +133,11 @@ elif dataset == "emobench":
             "EU": {
                 "Emotion": {
                     "overall": {},
+                    "categories": {}
                 },
                 "Cause": {
                     "overall": {},
+                    "categories": {}
                 }
             }
         }
@@ -172,253 +145,238 @@ elif dataset == "emobench":
         all_accuracy = []
         all_samples = 0
         
-        EA_results = results[llm_name]["EA"]
-        if len(EA_results["answers"]) == len(gts["EA"]):
+        # Process EA samples
+        if "EA" in model_data and isinstance(model_data["EA"], list):
+            ea_samples = model_data["EA"]
             gt_EA = [str(gt) for gt in gts["EA"]]
-            answer_EA = EA_results["answers"]
-            parsed_answers = [answer.strip()[-1] for answer in answer_EA]
             
-            correct = sum(1 for gt, pred in zip(gt_EA, parsed_answers) if gt == pred)
-            accuracy = correct / len(gt_EA) if len(gt_EA) > 0 else 0
-            
-            eval_res[llm_name]["EA"]["overall"] = {
-                "accuracy": round(accuracy, 3),
-                "sample_count": len(gt_EA)
-            }
-            
-            all_accuracy.append((accuracy, len(gt_EA)))
-            all_samples += len(gt_EA)
-            
-            pair_results = defaultdict(list)
-            for i, (problem, relationship) in enumerate(zip(ea_problems, ea_relationships)):
-                pair_key = f"{problem}:{relationship}"
-                pair_results[pair_key].append((gt_EA[i], parsed_answers[i]))
-            
-            eval_res[llm_name]["EA"]["problem_relationship_pairs"] = {}
-            eval_res[llm_name]["EA"]["problems"] = {}
-            eval_res[llm_name]["EA"]["relationships"] = {}
-            
-            problem_results = defaultdict(list)
-            relationship_results = defaultdict(list)
-            
-            for pair_key, result_pairs in pair_results.items():
-                problem, relationship = pair_key.split(":")
+            # Check if we have the right number of samples
+            if len(ea_samples) == len(gt_EA):
+                # Extract and parse EA answers
+                parsed_answers = [sample["answer"].strip()[-1] for sample in ea_samples]
                 
-                for gt, pred in result_pairs:
-                    problem_results[problem].append((gt, pred))
-                    relationship_results[relationship].append((gt, pred))
+                # Calculate overall EA accuracy
+                correct = sum(1 for gt, pred in zip(gt_EA, parsed_answers) if gt == pred)
+                accuracy = correct / len(gt_EA) if len(gt_EA) > 0 else 0
                 
-                pair_gt = [pair[0] for pair in result_pairs]
-                pair_pred = [pair[1] for pair in result_pairs]
-                
-                correct = sum(1 for gt, pred in result_pairs if gt == pred)
-                accuracy = correct / len(result_pairs) if len(result_pairs) > 0 else 0
-                
-                eval_res[llm_name]["EA"]["problem_relationship_pairs"][pair_key] = {
+                eval_res[llm_name]["EA"]["overall"] = {
                     "accuracy": round(accuracy, 3),
-                    "sample_count": len(result_pairs)
+                    "sample_count": len(gt_EA)
                 }
-            
-            for problem, result_pairs in problem_results.items():
-                problem_gt = [pair[0] for pair in result_pairs]
-                problem_pred = [pair[1] for pair in result_pairs]
                 
-                correct = sum(1 for gt, pred in result_pairs if gt == pred)
-                accuracy = correct / len(result_pairs) if len(result_pairs) > 0 else 0
+                all_accuracy.append((accuracy, len(gt_EA)))
+                all_samples += len(gt_EA)
                 
-                eval_res[llm_name]["EA"]["problems"][problem] = {
-                    "accuracy": round(accuracy, 3),
-                    "sample_count": len(result_pairs)
-                }
-            
-            for relationship, result_pairs in relationship_results.items():
-                rel_gt = [pair[0] for pair in result_pairs]
-                rel_pred = [pair[1] for pair in result_pairs]
+                # Prepare structures for problem/relationship analysis
+                pair_results = defaultdict(list)
+                problem_results = defaultdict(list)
+                relationship_results = defaultdict(list)
                 
-                correct = sum(1 for gt, pred in result_pairs if gt == pred)
-                accuracy = correct / len(result_pairs) if len(result_pairs) > 0 else 0
+                # Process each sample to extract problems and relationships
+                for i, sample in enumerate(ea_samples):
+                    problem = sample["problem"]
+                    relationship = sample["relationship"]
+                    pair_key = f"{problem}:{relationship}"
+                    
+                    # Store results by problem/relationship pairs
+                    pair_results[pair_key].append((gt_EA[i], parsed_answers[i]))
+                    problem_results[problem].append((gt_EA[i], parsed_answers[i]))
+                    relationship_results[relationship].append((gt_EA[i], parsed_answers[i]))
                 
-                eval_res[llm_name]["EA"]["relationships"][relationship] = {
-                    "accuracy": round(accuracy, 3),
-                    "sample_count": len(result_pairs)
-                }
-        else:
-            print(f"EA not completed for {llm_name}")
+                # Calculate metrics for problem-relationship pairs
+                for pair, results_list in pair_results.items():
+                    correct = sum(1 for gt, pred in results_list if gt == pred)
+                    accuracy = correct / len(results_list) if len(results_list) > 0 else 0
+                    
+                    eval_res[llm_name]["EA"]["problem_relationship_pairs"][pair] = {
+                        "accuracy": round(accuracy, 3),
+                        "sample_count": len(results_list)
+                    }
+                
+                # Calculate metrics for problems
+                for problem, results_list in problem_results.items():
+                    correct = sum(1 for gt, pred in results_list if gt == pred)
+                    accuracy = correct / len(results_list) if len(results_list) > 0 else 0
+                    
+                    eval_res[llm_name]["EA"]["problems"][problem] = {
+                        "accuracy": round(accuracy, 3),
+                        "sample_count": len(results_list)
+                    }
+                
+                # Calculate metrics for relationships
+                for relationship, results_list in relationship_results.items():
+                    correct = sum(1 for gt, pred in results_list if gt == pred)
+                    accuracy = correct / len(results_list) if len(results_list) > 0 else 0
+                    
+                    eval_res[llm_name]["EA"]["relationships"][relationship] = {
+                        "accuracy": round(accuracy, 3),
+                        "sample_count": len(results_list)
+                    }
+            else:
+                print(f"Warning: Number of EA samples ({len(ea_samples)}) does not match ground truth ({len(gt_EA)})")
         
-        EU_cause_results = results[llm_name]["EU"]["Cause"]
-        if len(EU_cause_results["answers"]) == len(gts["EU"]["Cause"]):
+        # Process EU Cause samples
+        if "EU" in model_data and "Cause" in model_data["EU"] and isinstance(model_data["EU"]["Cause"], list):
+            eu_cause_samples = model_data["EU"]["Cause"]
             gt_cause = [str(gt) for gt in gts["EU"]["Cause"]]
-            answer_cause = EU_cause_results["answers"]
-            parsed_answers = []
-            for answer in answer_cause:
-                try:
-                    parsed_answers.append(answer.strip()[-1])
-                except:
-                    parsed_answers.append(-1)
             
-            correct = sum(1 for gt, pred in zip(gt_cause, parsed_answers) if gt == pred)
-            accuracy = correct / len(gt_cause) if len(gt_cause) > 0 else 0
-            
-            eval_res[llm_name]["EU"]["Cause"]["overall"] = {
-                "accuracy": round(accuracy, 3),
-                "sample_count": len(gt_cause)
-            }
-            
-            all_accuracy.append((accuracy, len(gt_cause)))
-            all_samples += len(gt_cause)
-            
-            # Map each category to its main category and subcategory
-            main_cat_results = defaultdict(list)
-            sub_cat_results = defaultdict(list)
-            cat_to_main_mapping = {}
-            
-            # Create mapping of category to main category
-            for main_cat, sub_cats in eu_cat_dict.items():
-                for sub_cat in sub_cats:
-                    cat_to_main_mapping[sub_cat] = main_cat
-            
-            # Group samples by category, main category, and subcategory
-            category_results = defaultdict(list)
-            for i, category in enumerate(eu_categories):
-                category_results[category].append((gt_cause[i], parsed_answers[i]))
+            # Check if we have the right number of samples
+            if len(eu_cause_samples) == len(gt_cause):
+                # Extract and parse answers
+                parsed_answers = []
+                for sample in eu_cause_samples:
+                    answer = sample["answer"]
+                    answer_text = answer.strip()
+                    
+                    # Handle empty answers
+                    if not answer_text:
+                        parsed_answers.append("")  # Empty answer
+                        continue
+                    
+                    # Extract final answer based on format (last character or specific pattern)
+                    if answer_text[-1].isdigit():
+                        parsed_answers.append(answer_text[-1])
+                    else:
+                        answer_parts = answer_text.split("Answer:")
+                        if len(answer_parts) > 1 and answer_parts[1].strip():
+                            parsed_answers.append(answer_parts[1].strip()[0])
+                        else:
+                            # Fallback - use the last character if available, otherwise empty string
+                            parsed_answers.append(answer_text[-1] if answer_text else "")
                 
-                # Add to main category if it exists in the mapping
-                if category in cat_to_main_mapping:
-                    main_cat = cat_to_main_mapping[category]
-                    main_cat_results[main_cat].append((gt_cause[i], parsed_answers[i]))
-                    sub_cat_results[category].append((gt_cause[i], parsed_answers[i]))
-                else:
-                    # If not found in mapping, use the category as its own main category
-                    main_cat_results[category].append((gt_cause[i], parsed_answers[i]))
-            
-            # Calculate metrics for each main category
-            for main_cat, result_pairs in main_cat_results.items():
-                main_cat_gt = [pair[0] for pair in result_pairs]
-                main_cat_pred = [pair[1] for pair in result_pairs]
+                # Calculate overall Cause accuracy
+                correct = sum(1 for gt, pred in zip(gt_cause, parsed_answers) if gt == pred)
+                accuracy = correct / len(gt_cause) if len(gt_cause) > 0 else 0
                 
-                correct = sum(1 for gt, pred in result_pairs if gt == pred)
-                accuracy = correct / len(result_pairs) if len(result_pairs) > 0 else 0
-                
-                eval_res[llm_name]["EU"]["Cause"][main_cat] = {
+                eval_res[llm_name]["EU"]["Cause"]["overall"] = {
                     "accuracy": round(accuracy, 3),
-                    "sample_count": len(result_pairs),
-                    "sub_categories": {}
+                    "sample_count": len(gt_cause)
                 }
-            
-            # Calculate metrics for each subcategory and add to its main category
-            for sub_cat, result_pairs in sub_cat_results.items():
-                if sub_cat in cat_to_main_mapping:
-                    main_cat = cat_to_main_mapping[sub_cat]
+                
+                all_accuracy.append((accuracy, len(gt_cause)))
+                all_samples += len(gt_cause)
+                
+                # Group by category for category-level metrics
+                category_results = defaultdict(list)
+                
+                for i, sample in enumerate(eu_cause_samples):
+                    category = sample["category"]
+                    category_results[category].append((gt_cause[i], parsed_answers[i]))
+                
+                # Calculate metrics for each category
+                for category, results_list in category_results.items():
+                    correct = sum(1 for gt, pred in results_list if gt == pred)
+                    accuracy = correct / len(results_list) if len(results_list) > 0 else 0
                     
-                    sub_cat_gt = [pair[0] for pair in result_pairs]
-                    sub_cat_pred = [pair[1] for pair in result_pairs]
-                    
-                    correct = sum(1 for gt, pred in result_pairs if gt == pred)
-                    accuracy = correct / len(result_pairs) if len(result_pairs) > 0 else 0
-                    
-                    # Add subcategory to its main category
-                    eval_res[llm_name]["EU"]["Cause"][main_cat]["sub_categories"][sub_cat] = {
+                    eval_res[llm_name]["EU"]["Cause"]["categories"][category] = {
                         "accuracy": round(accuracy, 3),
-                        "sample_count": len(result_pairs)
+                        "sample_count": len(results_list)
                     }
-        else:
-            print(f"Cause not completed for {llm_name}")
-
-        EU_emotion_results = results[llm_name]["EU"]["Emotion"]
-        if len(EU_emotion_results["answers"]) == len(gts["EU"]["Emotion"]):
+            else:
+                print(f"Warning: Number of EU Cause samples ({len(eu_cause_samples)}) does not match ground truth ({len(gt_cause)})")
+        
+        # Process EU Emotion samples
+        if "EU" in model_data and "Emotion" in model_data["EU"] and isinstance(model_data["EU"]["Emotion"], list):
+            eu_emotion_samples = model_data["EU"]["Emotion"]
             gt_emotion = [str(gt) for gt in gts["EU"]["Emotion"]]
-            answer_emotion = EU_emotion_results["answers"]
-            parsed_answers = []
-            for answer in answer_emotion:
-                try:
-                    parsed_answers.append(answer.strip()[-1])
-                except:
-                    parsed_answers.append(-1)
             
-            correct = sum(1 for gt, pred in zip(gt_emotion, parsed_answers) if gt == pred)
-            accuracy = correct / len(gt_emotion) if len(gt_emotion) > 0 else 0
-            
-            eval_res[llm_name]["EU"]["Emotion"]["overall"] = {
-                "accuracy": round(accuracy, 3),
-                "sample_count": len(gt_emotion)
-            }
-            
-            all_accuracy.append((accuracy, len(gt_emotion)))
-            all_samples += len(gt_emotion)
-            
-            # Map each category to its main category and subcategory
-            main_cat_results = defaultdict(list)
-            sub_cat_results = defaultdict(list)
-            cat_to_main_mapping = {}
-            
-            # Create mapping of category to main category
-            for main_cat, sub_cats in eu_cat_dict.items():
-                for sub_cat in sub_cats:
-                    cat_to_main_mapping[sub_cat] = main_cat
-            
-            # Group samples by category, main category, and subcategory
-            category_results = defaultdict(list)
-            for i, category in enumerate(eu_categories):
-                category_results[category].append((gt_emotion[i], parsed_answers[i]))
+            # Check if we have the right number of samples
+            if len(eu_emotion_samples) == len(gt_emotion):
+                # Extract and parse answers
+                parsed_answers = []
+                for sample in eu_emotion_samples:
+                    answer = sample["answer"]
+                    answer_text = answer.strip()
+                    
+                    # Handle empty answers
+                    if not answer_text:
+                        parsed_answers.append("")  # Empty answer
+                        continue
+                    
+                    # Extract final answer based on format (last character or specific pattern)
+                    if answer_text[-1].isdigit():
+                        parsed_answers.append(answer_text[-1])
+                    else:
+                        answer_parts = answer_text.split("Answer:")
+                        if len(answer_parts) > 1 and answer_parts[1].strip():
+                            parsed_answers.append(answer_parts[1].strip()[0])
+                        else:
+                            # Fallback - use the last character if available, otherwise empty string
+                            parsed_answers.append(answer_text[-1] if answer_text else "")
                 
-                # Add to main category if it exists in the mapping
-                if category in cat_to_main_mapping:
-                    main_cat = cat_to_main_mapping[category]
-                    main_cat_results[main_cat].append((gt_emotion[i], parsed_answers[i]))
-                    sub_cat_results[category].append((gt_emotion[i], parsed_answers[i]))
-                else:
-                    # If not found in mapping, use the category as its own main category
-                    main_cat_results[category].append((gt_emotion[i], parsed_answers[i]))
-                        
-            # Calculate metrics for each main category
-            for main_cat, result_pairs in main_cat_results.items():
-                main_cat_gt = [pair[0] for pair in result_pairs]
-                main_cat_pred = [pair[1] for pair in result_pairs]
+                # Calculate overall Emotion accuracy
+                correct = sum(1 for gt, pred in zip(gt_emotion, parsed_answers) if gt == pred)
+                accuracy = correct / len(gt_emotion) if len(gt_emotion) > 0 else 0
                 
-                correct = sum(1 for gt, pred in result_pairs if gt == pred)
-                accuracy = correct / len(result_pairs) if len(result_pairs) > 0 else 0
-                
-                eval_res[llm_name]["EU"]["Emotion"][main_cat] = {
+                eval_res[llm_name]["EU"]["Emotion"]["overall"] = {
                     "accuracy": round(accuracy, 3),
-                    "sample_count": len(result_pairs),
-                    "sub_categories": {}
+                    "sample_count": len(gt_emotion)
                 }
-            
-            # Calculate metrics for each subcategory and add to its main category
-            for sub_cat, result_pairs in sub_cat_results.items():
-                if sub_cat in cat_to_main_mapping:
-                    main_cat = cat_to_main_mapping[sub_cat]
+                
+                all_accuracy.append((accuracy, len(gt_emotion)))
+                all_samples += len(gt_emotion)
+                
+                # Group by category for category-level metrics
+                category_results = defaultdict(list)
+                
+                for i, sample in enumerate(eu_emotion_samples):
+                    category = sample["category"]
+                    category_results[category].append((gt_emotion[i], parsed_answers[i]))
+                
+                # Calculate metrics for each category
+                for category, results_list in category_results.items():
+                    correct = sum(1 for gt, pred in results_list if gt == pred)
+                    accuracy = correct / len(results_list) if len(results_list) > 0 else 0
                     
-                    sub_cat_gt = [pair[0] for pair in result_pairs]
-                    sub_cat_pred = [pair[1] for pair in result_pairs]
-                    
-                    correct = sum(1 for gt, pred in result_pairs if gt == pred)
-                    accuracy = correct / len(result_pairs) if len(result_pairs) > 0 else 0
-                    
-                    # Add subcategory to its main category
-                    eval_res[llm_name]["EU"]["Emotion"][main_cat]["sub_categories"][sub_cat] = {
+                    eval_res[llm_name]["EU"]["Emotion"]["categories"][category] = {
                         "accuracy": round(accuracy, 3),
-                        "sample_count": len(result_pairs)
+                        "sample_count": len(results_list)
                     }
-        else:
-            print(f"Emotion not completed for {llm_name}")
+            else:
+                print(f"Warning: Number of EU Emotion samples ({len(eu_emotion_samples)}) does not match ground truth ({len(gt_emotion)})")
         
-        def has_complete_metrics(result_dict, task):
-            return ("overall" in result_dict[task] and 
-                    isinstance(result_dict[task]["overall"], dict) and
-                    "accuracy" in result_dict[task]["overall"] and 
-                    "sample_count" in result_dict[task]["overall"])
-        
-        has_emotion_metrics = has_complete_metrics(eval_res[llm_name]["EU"], "Emotion")
-        has_cause_metrics = has_complete_metrics(eval_res[llm_name]["EU"], "Cause")
-        
-        if has_emotion_metrics and has_cause_metrics:
+        # Calculate overall EU metrics if both Emotion and Cause are present
+        if "Emotion" in eval_res[llm_name]["EU"] and "overall" in eval_res[llm_name]["EU"]["Emotion"] and \
+           "Cause" in eval_res[llm_name]["EU"] and "overall" in eval_res[llm_name]["EU"]["Cause"]:
+            # Calculate weighted average accuracy
             emotion_acc = eval_res[llm_name]["EU"]["Emotion"]["overall"]["accuracy"]
             emotion_count = eval_res[llm_name]["EU"]["Emotion"]["overall"]["sample_count"]
             cause_acc = eval_res[llm_name]["EU"]["Cause"]["overall"]["accuracy"]
             cause_count = eval_res[llm_name]["EU"]["Cause"]["overall"]["sample_count"]
-                        
-        print(f"\nFinished {llm_name}!\n")
+            
+            eu_total = emotion_count + cause_count
+            eu_acc = (emotion_acc * emotion_count + cause_acc * cause_count) / eu_total if eu_total > 0 else 0
+            
+            eval_res[llm_name]["EU"]["overall"] = {
+                "accuracy": round(eu_acc, 3),
+                "sample_count": eu_total
+            }
         
-with open(os.path.join("results", f"{dataset}_eval_res.json"), "w") as f:
+        # Calculate overall metrics across EA and EU
+        if "EA" in eval_res[llm_name] and "overall" in eval_res[llm_name]["EA"] and \
+           "EU" in eval_res[llm_name] and "overall" in eval_res[llm_name]["EU"]:
+            # Calculate weighted average accuracy
+            total_correct = sum(acc * count for acc, count in all_accuracy)
+            overall_acc = total_correct / all_samples if all_samples > 0 else 0
+            
+            eval_res[llm_name]["overall"] = {
+                "accuracy": round(overall_acc, 3),
+                "sample_count": all_samples
+            }
+
+# Save evaluation results
+output_path = results_dir / f"{dataset}_results.json"
+with open(output_path, "w") as f:
     json.dump(eval_res, f, indent=4)
+
+print(f"Evaluation results saved to {output_path}")
+
+# Print overall results
+print("\nOverall Results:")
+for llm_name in eval_res:
+    if "overall" in eval_res[llm_name]:
+        print(f"{llm_name}: {eval_res[llm_name]['overall']['accuracy']:.3f} ({eval_res[llm_name]['overall']['sample_count']} samples)")
+    elif dataset == "tombench":
+        print(f"{llm_name}: {eval_res[llm_name]['overall']['accuracy']:.3f} ({eval_res[llm_name]['overall']['sample_count']} samples)")
+    else:
+        print(f"{llm_name}: Results incomplete")

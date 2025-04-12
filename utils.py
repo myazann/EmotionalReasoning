@@ -1,11 +1,9 @@
 import os
 import json
-from pathlib import Path
-import sys
 
 def get_results_filename(dataset, lang, cot):
     cot_str = '_cot' if cot else ''
-    return f'results/{dataset}_{lang}{cot_str}_results.json'
+    return f'results/{dataset}_{lang}{cot_str}_generations.json'
 
 def get_prompts_gts_filename(dataset, lang, cot):
     cot_str = '_cot' if cot else ''
@@ -16,15 +14,28 @@ def get_saved_prompts_filename(dataset, lang, cot):
     return f'results/{dataset}_{lang}{cot_str}_prompts.json'
 
 def load_existing_results(dataset, lang, cot):
+    # Try with the new '_generations' format first (from get_results_filename)
     filename = get_results_filename(dataset, lang, cot)
-    if os.path.exists(filename):
-        try:
-            with open(filename, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except json.JSONDecodeError:
-            print(f"Error reading {filename}, starting with fresh results")
+    
+    # If the file with the new format doesn't exist, try the old format
+    if not os.path.exists(filename):
+        # Construct the old filename format
+        cot_str = '_cot' if cot else ''
+        old_filename = f'results/{dataset}_{lang}{cot_str}_generations.json'
+        
+        if os.path.exists(old_filename):
+            print(f"Using legacy results file {old_filename}")
+            filename = old_filename
+        else:
+            print(f"No results file found. Tried {filename} and {old_filename}")
             return {}
-    return {}
+    
+    try:
+        with open(filename, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        print(f"Error reading {filename}, starting with fresh results")
+        return {}
 
 def save_prompts(dataset, lang, cot, all_prompts):
     filename = get_saved_prompts_filename(dataset, lang, cot)
