@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from collections import defaultdict
 
-from sklearn.metrics import f1_score
+
 from utils import load_existing_results
 from exp_datasets import get_gts, get_emo_eu_cats, get_emo_eu_cat_dict, get_emo_ea_problems_and_relationships, get_dataset, get_tom_abilities
 
@@ -62,11 +62,8 @@ if dataset == "tombench":
                 correct = sum(1 for gt, pred in zip(gt_topic, parsed_answers) if gt == pred)
                 accuracy = correct / len(gt_topic) if len(gt_topic) > 0 else 0
                 
-                f1 = f1_score(gt_topic, parsed_answers, average="macro")
-                
                 topic_res[topic] = {
-                    "accuracy": round(accuracy, 3), 
-                    "f1": round(f1, 3),
+                    "accuracy": round(accuracy, 3),
                     "sample_count": len(gt_topic)
                 }
             else:
@@ -119,14 +116,8 @@ if dataset == "tombench":
             correct = sum(1 for gt, pred in main_samples if gt == pred)
             accuracy = correct / len(main_samples) if len(main_samples) > 0 else 0
             
-            try:
-                f1 = f1_score(main_gt, main_pred, average="macro")
-            except:
-                f1 = 0
-            
             abilities_output[main_ability] = {
                 "accuracy": round(accuracy, 3),
-                "f1": round(f1, 3),
                 "sample_count": len(main_samples),
                 "sub_abilities": {}
             }
@@ -138,31 +129,19 @@ if dataset == "tombench":
                 correct = sum(1 for gt, pred in sub_samples if gt == pred)
                 accuracy = correct / len(sub_samples) if len(sub_samples) > 0 else 0
                 
-                try:
-                    f1 = f1_score(sub_gt, sub_pred, average="macro")
-                except:
-                    f1 = 0
-                
                 abilities_output[main_ability]["sub_abilities"][sub_ability] = {
                     "accuracy": round(accuracy, 3),
-                    "f1": round(f1, 3),
                     "sample_count": len(sub_samples)
                 }
         
         overall_correct = sum(1 for gt, pred in zip(flat_gts, flat_preds) if gt == pred)
         overall_accuracy = overall_correct / len(flat_gts) if len(flat_gts) > 0 else 0
         
-        try:
-            overall_f1 = f1_score(flat_gts, flat_preds, average="macro")
-        except:
-            overall_f1 = 0
-        
         eval_res[llm_name] = {
             "topics": topic_res,
             "abilities": abilities_output,
             "overall": {
                 "accuracy": round(overall_accuracy, 3),
-                "f1": round(overall_f1, 3),
                 "sample_count": len(flat_gts)
             }
         }
@@ -191,7 +170,6 @@ elif dataset == "emobench":
         }
         
         all_accuracy = []
-        all_f1 = []
         all_samples = 0
         
         EA_results = results[llm_name]["EA"]
@@ -203,16 +181,12 @@ elif dataset == "emobench":
             correct = sum(1 for gt, pred in zip(gt_EA, parsed_answers) if gt == pred)
             accuracy = correct / len(gt_EA) if len(gt_EA) > 0 else 0
             
-            f1 = f1_score(gt_EA, parsed_answers, average="macro")
-            
             eval_res[llm_name]["EA"]["overall"] = {
-                "accuracy": round(accuracy, 3), 
-                "f1": round(f1, 3),
+                "accuracy": round(accuracy, 3),
                 "sample_count": len(gt_EA)
             }
             
             all_accuracy.append((accuracy, len(gt_EA)))
-            all_f1.append((f1, len(gt_EA)))
             all_samples += len(gt_EA)
             
             pair_results = defaultdict(list)
@@ -240,14 +214,8 @@ elif dataset == "emobench":
                 correct = sum(1 for gt, pred in result_pairs if gt == pred)
                 accuracy = correct / len(result_pairs) if len(result_pairs) > 0 else 0
                 
-                try:
-                    f1 = f1_score(pair_gt, pair_pred, average="macro")
-                except:
-                    f1 = 0
-                
                 eval_res[llm_name]["EA"]["problem_relationship_pairs"][pair_key] = {
                     "accuracy": round(accuracy, 3),
-                    "f1": round(f1, 3),
                     "sample_count": len(result_pairs)
                 }
             
@@ -258,14 +226,8 @@ elif dataset == "emobench":
                 correct = sum(1 for gt, pred in result_pairs if gt == pred)
                 accuracy = correct / len(result_pairs) if len(result_pairs) > 0 else 0
                 
-                try:
-                    f1 = f1_score(problem_gt, problem_pred, average="macro")
-                except:
-                    f1 = 0
-                
                 eval_res[llm_name]["EA"]["problems"][problem] = {
                     "accuracy": round(accuracy, 3),
-                    "f1": round(f1, 3),
                     "sample_count": len(result_pairs)
                 }
             
@@ -276,14 +238,8 @@ elif dataset == "emobench":
                 correct = sum(1 for gt, pred in result_pairs if gt == pred)
                 accuracy = correct / len(result_pairs) if len(result_pairs) > 0 else 0
                 
-                try:
-                    f1 = f1_score(rel_gt, rel_pred, average="macro")
-                except:
-                    f1 = 0
-                
                 eval_res[llm_name]["EA"]["relationships"][relationship] = {
                     "accuracy": round(accuracy, 3),
-                    "f1": round(f1, 3),
                     "sample_count": len(result_pairs)
                 }
         else:
@@ -303,16 +259,12 @@ elif dataset == "emobench":
             correct = sum(1 for gt, pred in zip(gt_cause, parsed_answers) if gt == pred)
             accuracy = correct / len(gt_cause) if len(gt_cause) > 0 else 0
             
-            f1 = f1_score(gt_cause, parsed_answers, average="macro")
-            
             eval_res[llm_name]["EU"]["Cause"]["overall"] = {
-                "accuracy": round(accuracy, 3), 
-                "f1": round(f1, 3),
+                "accuracy": round(accuracy, 3),
                 "sample_count": len(gt_cause)
             }
             
             all_accuracy.append((accuracy, len(gt_cause)))
-            all_f1.append((f1, len(gt_cause)))
             all_samples += len(gt_cause)
             
             # Map each category to its main category and subcategory
@@ -347,14 +299,8 @@ elif dataset == "emobench":
                 correct = sum(1 for gt, pred in result_pairs if gt == pred)
                 accuracy = correct / len(result_pairs) if len(result_pairs) > 0 else 0
                 
-                try:
-                    f1 = f1_score(main_cat_gt, main_cat_pred, average="macro")
-                except:
-                    f1 = 0
-                
                 eval_res[llm_name]["EU"]["Cause"][main_cat] = {
                     "accuracy": round(accuracy, 3),
-                    "f1": round(f1, 3),
                     "sample_count": len(result_pairs),
                     "sub_categories": {}
                 }
@@ -370,15 +316,9 @@ elif dataset == "emobench":
                     correct = sum(1 for gt, pred in result_pairs if gt == pred)
                     accuracy = correct / len(result_pairs) if len(result_pairs) > 0 else 0
                     
-                    try:
-                        f1 = f1_score(sub_cat_gt, sub_cat_pred, average="macro")
-                    except:
-                        f1 = 0
-                    
                     # Add subcategory to its main category
                     eval_res[llm_name]["EU"]["Cause"][main_cat]["sub_categories"][sub_cat] = {
                         "accuracy": round(accuracy, 3),
-                        "f1": round(f1, 3),
                         "sample_count": len(result_pairs)
                     }
         else:
@@ -398,16 +338,12 @@ elif dataset == "emobench":
             correct = sum(1 for gt, pred in zip(gt_emotion, parsed_answers) if gt == pred)
             accuracy = correct / len(gt_emotion) if len(gt_emotion) > 0 else 0
             
-            f1 = f1_score(gt_emotion, parsed_answers, average="macro")
-            
             eval_res[llm_name]["EU"]["Emotion"]["overall"] = {
-                "accuracy": round(accuracy, 3), 
-                "f1": round(f1, 3),
+                "accuracy": round(accuracy, 3),
                 "sample_count": len(gt_emotion)
             }
             
             all_accuracy.append((accuracy, len(gt_emotion)))
-            all_f1.append((f1, len(gt_emotion)))
             all_samples += len(gt_emotion)
             
             # Map each category to its main category and subcategory
@@ -442,14 +378,8 @@ elif dataset == "emobench":
                 correct = sum(1 for gt, pred in result_pairs if gt == pred)
                 accuracy = correct / len(result_pairs) if len(result_pairs) > 0 else 0
                 
-                try:
-                    f1 = f1_score(main_cat_gt, main_cat_pred, average="macro")
-                except:
-                    f1 = 0
-                
                 eval_res[llm_name]["EU"]["Emotion"][main_cat] = {
                     "accuracy": round(accuracy, 3),
-                    "f1": round(f1, 3),
                     "sample_count": len(result_pairs),
                     "sub_categories": {}
                 }
@@ -465,15 +395,9 @@ elif dataset == "emobench":
                     correct = sum(1 for gt, pred in result_pairs if gt == pred)
                     accuracy = correct / len(result_pairs) if len(result_pairs) > 0 else 0
                     
-                    try:
-                        f1 = f1_score(sub_cat_gt, sub_cat_pred, average="macro")
-                    except:
-                        f1 = 0
-                    
                     # Add subcategory to its main category
                     eval_res[llm_name]["EU"]["Emotion"][main_cat]["sub_categories"][sub_cat] = {
                         "accuracy": round(accuracy, 3),
-                        "f1": round(f1, 3),
                         "sample_count": len(result_pairs)
                     }
         else:
@@ -483,7 +407,6 @@ elif dataset == "emobench":
             return ("overall" in result_dict[task] and 
                     isinstance(result_dict[task]["overall"], dict) and
                     "accuracy" in result_dict[task]["overall"] and 
-                    "f1" in result_dict[task]["overall"] and
                     "sample_count" in result_dict[task]["overall"])
         
         has_emotion_metrics = has_complete_metrics(eval_res[llm_name]["EU"], "Emotion")
@@ -491,11 +414,8 @@ elif dataset == "emobench":
         
         if has_emotion_metrics and has_cause_metrics:
             emotion_acc = eval_res[llm_name]["EU"]["Emotion"]["overall"]["accuracy"]
-            emotion_f1 = eval_res[llm_name]["EU"]["Emotion"]["overall"]["f1"]
             emotion_count = eval_res[llm_name]["EU"]["Emotion"]["overall"]["sample_count"]
-            
             cause_acc = eval_res[llm_name]["EU"]["Cause"]["overall"]["accuracy"]
-            cause_f1 = eval_res[llm_name]["EU"]["Cause"]["overall"]["f1"]
             cause_count = eval_res[llm_name]["EU"]["Cause"]["overall"]["sample_count"]
                         
         print(f"\nFinished {llm_name}!\n")
