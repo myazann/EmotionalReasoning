@@ -1,12 +1,10 @@
 import argparse
 import sys
-import os
 from pathlib import Path
-import json
 from collections import defaultdict
 
 from prompts import get_all_prompts
-from exp_datasets import get_gts, get_dataset
+from exp_datasets import get_gts, get_dataset, get_emo_eu_cat_dict
 from models import LLM
 from utils import load_existing_results, save_results, save_prompts
 
@@ -32,14 +30,11 @@ dataset_data = get_dataset(dataset)
 # Load ground truths
 gts = get_gts(dataset)
 
-# Save prompts without add_think for future reference
 saved_prompts = get_all_prompts(dataset, data=dataset_data, lang=lang, cot=cot)
 save_prompts(dataset, lang, cot, saved_prompts)
 
-
 gen_params = {"temperature": 0.6, "max_tokens": 4096}
 
-# Get any existing results
 results_dir = Path('results')
 results_dir.mkdir(exist_ok=True)
 
@@ -251,7 +246,6 @@ for llm_name in llm_models:
                             main_ability = main_ability.strip().lower()
                             sub_ability = sub_ability.strip().lower()
                             
-                            # Merge the two desires influence sub-abilities
                             if sub_ability == "desires influence on actions" or sub_ability == "desires influence on emotions (beliefs)":
                                 sub_ability = "desires influence on actions and emotions"
                         else:
@@ -278,11 +272,9 @@ for llm_name in llm_models:
                         "sub_ability": ability_info["sub_ability"]
                     }
                     
-                    # Add to results
                     results[llm_name].append(sample)
                     save_results(results, dataset, lang, cot)
                     
-                    # Update processed count
                     processed_samples[category] += 1
             else:
                 print(f"{category} experiments already completed for {llm_name}")

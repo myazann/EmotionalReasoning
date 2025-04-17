@@ -125,7 +125,11 @@ def construct_emobench_prompt(prompt_params, task, eu_task="Emotion", lang="en",
     else:
         raise ValueError(f"Task {task} not defined")
     
-    cot_prompt = prompts["Prompts"][cot][lang] + "\n" + "The options are numbered starting from 0, with the leftmost option being the first, and so on. Output the corresponding number.\n"
+    if lang == "en":
+        option_prompt = "The options are numbered starting from 0, with the leftmost option being the first, and so on. Output the corresponding number.\n"
+    elif lang == "zh":
+        option_prompt = "选项从0开始编号，最左边的选项是第一个，依此类推。请输出相应的数字。\n"
+    cot_prompt = prompts["Prompts"][cot][lang] + "\n" + option_prompt
     if add_think:
         cot_prompt = f"{cot_prompt}\n<think>\n"
     
