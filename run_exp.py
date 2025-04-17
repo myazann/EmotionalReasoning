@@ -4,7 +4,7 @@ from pathlib import Path
 from collections import defaultdict
 
 from prompts import get_all_prompts
-from exp_datasets import get_gts, get_dataset, get_emo_eu_cat_dict
+from exp_datasets import get_gts, get_dataset, get_emo_eu_cats
 from models import LLM
 from utils import load_existing_results, save_results, save_prompts
 
@@ -115,8 +115,8 @@ for llm_name in llm_models:
                 print(f"Continuing EU-Emotion experiments for {llm_name}: {completed_samples}/{total_samples} completed")
                 
                 # Get category information
-                from exp_datasets import get_emo_eu_cat_dict
-                eu_cat_dict = get_emo_eu_cat_dict()
+                from exp_datasets import get_emo_eu_cats
+                eu_categories = get_emo_eu_cats()
                 
                 llm = LLM(llm_name, gen_params=gen_params)
                 
@@ -124,7 +124,7 @@ for llm_name in llm_models:
                     print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
                     
                     # Get category for this sample (index matches the sample index)
-                    category = eu_cat_dict[completed_samples + i]
+                    category = eu_categories[completed_samples + i]
                     
                     output = llm.generate(prompt)
                     reasoning_steps, answer = llm.parse_think_output(output)
@@ -153,8 +153,8 @@ for llm_name in llm_models:
                 print(f"Continuing EU-Cause experiments for {llm_name}: {completed_samples}/{total_samples} completed")
                 
                 # Get category information
-                from exp_datasets import get_emo_eu_cat_dict
-                eu_cat_dict = get_emo_eu_cat_dict()
+                from exp_datasets import get_emo_eu_cats
+                eu_categories = get_emo_eu_cats()
                 
                 llm = LLM(llm_name, gen_params=gen_params)
                 
@@ -162,7 +162,7 @@ for llm_name in llm_models:
                     print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
                     
                     # Get category for this sample (index matches the sample index)
-                    category = eu_cat_dict[completed_samples + i]
+                    category = eu_categories[completed_samples + i]
                     
                     output = llm.generate(prompt)
                     reasoning_steps, answer = llm.parse_think_output(output)

@@ -1,0 +1,62 @@
+{
+    "DEEPSEEK-R1": {
+        "topics": {
+            "Knowledge-Attention Links": {
+                "accuracy": 0.45,
+                "sample_count": 20
+            },
+            "Multiple Desires": {
+                "accuracy": 1.0,
+                "sample_count": 20
+            },
+            "Discrepant Desires": {
+                "accuracy": 0.6,
+                "sample_count": 20
+            },
+            "Faux-pas Recognition Test": {
+                "accuracy": 0.756,
+                "sample_count": 504
+            }
+        },
+        "abilities": {
+            "knowledge": {
+                "accuracy": 0.45,
+                "sample_count": 20,
+                "sub_abilities": {
+                    "knowledge-attention links": {
+                        "accuracy": 0.45,
+                        "sample_count": 20
+                    }
+                }
+            },
+            "desire": {
+                "accuracy": 0.8,
+                "sample_count": 40,
+                "sub_abilities": {
+                    "multiple desires": {
+                        "accuracy": 1.0,
+                        "sample_count": 20
+                    },
+                    "discrepant desires": {
+                        "accuracy": 0.6,
+                        "sample_count": 20
+                    }
+                }
+            },
+            "non-literal communication": {
+                "accuracy": 0.756,
+                "sample_count": 504,
+                "sub_abilities": {
+                    "faux pas": {
+                        "accuracy": 0.756,
+                        "sample_count": 504
+                    }
+                }
+            }
+        },
+        "overall": {
+            "accuracy": 0.748,
+            "sample_count": 564
+        }
+    }
+}

@@ -365,7 +365,7 @@ elif dataset == "emobench":
             }
 
 # Save evaluation results
-output_path = results_dir / f"{dataset}_results.json"
+output_path = results_dir / f"{dataset}_{lang}_results.json"
 with open(output_path, "w") as f:
     json.dump(eval_res, f, indent=4)
 
