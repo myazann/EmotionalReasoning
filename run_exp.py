@@ -2,9 +2,10 @@ import argparse
 import sys
 from pathlib import Path
 from collections import defaultdict
+import torch
 
 from prompts import get_all_prompts
-from exp_datasets import get_gts, get_dataset, get_emo_eu_cats
+from exp_datasets import get_gts, get_dataset, get_emo_eu_cats, get_emo_ea_problems_and_relationships
 from models import LLM
 from utils import load_existing_results, save_results, save_prompts
 
@@ -45,13 +46,10 @@ results = load_existing_results(dataset, lang, cot)
 for llm_name in llm_models:
     print(f"\nProcessing LLM: {llm_name}\n")
     
-    # Set add_think for DISTILL models
     add_think = True if "DISTILL" in llm_name else False
     
-    # Get prompts with appropriate add_think setting for this model
     all_prompts = get_all_prompts(dataset, data=dataset_data, lang=lang, cot=cot, add_think=add_think)
     
-    # Initialize model results if not already present
     if llm_name not in results:
         if dataset == "emobench":
             results[llm_name] = {
@@ -64,8 +62,10 @@ for llm_name in llm_models:
         else:  # tombench
             results[llm_name] = []
     
+    llm = LLM(llm_name, gen_params=gen_params)
+
     if dataset == "emobench":
-        # Process EA samples
+
         if "EA" in all_prompts:
             ea_prompts = all_prompts["EA"]
             completed_samples = len(results[llm_name]["EA"])
@@ -74,16 +74,11 @@ for llm_name in llm_models:
             if completed_samples < total_samples:
                 print(f"Continuing EA experiments for {llm_name}: {completed_samples}/{total_samples} completed")
                 
-                # Get problem and relationship data
-                from exp_datasets import get_emo_ea_problems_and_relationships
                 ea_problems, ea_relationships = get_emo_ea_problems_and_relationships()
-                
-                llm = LLM(llm_name, gen_params=gen_params)
                 
                 for i, (prompt, gt) in enumerate(zip(ea_prompts[completed_samples:], gts["EA"][completed_samples:])):
                     print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
                     
-                    # Get problem and relationship for this sample
                     problem = ea_problems[completed_samples + i]
                     relationship = ea_relationships[completed_samples + i]
                     
@@ -91,7 +86,6 @@ for llm_name in llm_models:
                     reasoning_steps, answer = llm.parse_think_output(output)
                     sys.stdout.flush()
                     
-                    # Create sample with flattened structure
                     sample = {
                         "answer": answer,
                         "reasoning": reasoning_steps,
@@ -99,7 +93,6 @@ for llm_name in llm_models:
                         "relationship": relationship
                     }
                     
-                    # Add to results
                     results[llm_name]["EA"].append(sample)
                     save_results(results, dataset, lang, cot)
             else:
@@ -114,18 +107,12 @@ for llm_name in llm_models:
             if completed_samples < total_samples:
                 print(f"Continuing EU-Emotion experiments for {llm_name}: {completed_samples}/{total_samples} completed")
                 
-                # Get category information
-                from exp_datasets import get_emo_eu_cats
                 eu_categories = get_emo_eu_cats()
-                
-                llm = LLM(llm_name, gen_params=gen_params)
                 
                 for i, (prompt, gt) in enumerate(zip(eu_emotion_prompts[completed_samples:], gts["EU"]["Emotion"][completed_samples:])):
                     print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
                     
-                    # Get category for this sample (index matches the sample index)
                     category = eu_categories[completed_samples + i]
-                    
                     output = llm.generate(prompt)
                     reasoning_steps, answer = llm.parse_think_output(output)
                     sys.stdout.flush()
@@ -152,18 +139,13 @@ for llm_name in llm_models:
             if completed_samples < total_samples:
                 print(f"Continuing EU-Cause experiments for {llm_name}: {completed_samples}/{total_samples} completed")
                 
-                # Get category information
-                from exp_datasets import get_emo_eu_cats
                 eu_categories = get_emo_eu_cats()
-                
-                llm = LLM(llm_name, gen_params=gen_params)
                 
                 for i, (prompt, gt) in enumerate(zip(eu_cause_prompts[completed_samples:], gts["EU"]["Cause"][completed_samples:])):
                     print(f"Processing sample {completed_samples + i + 1}/{total_samples}")
                     
                     # Get category for this sample (index matches the sample index)
                     category = eu_categories[completed_samples + i]
-                    
                     output = llm.generate(prompt)
                     reasoning_steps, answer = llm.parse_think_output(output)
                     sys.stdout.flush()
@@ -214,9 +196,7 @@ for llm_name in llm_models:
             # Check if we need to process more samples for this category
             if category_samples_done < len(category_prompts):
                 print(f"\nContinuing {category} experiments for {llm_name}: {category_samples_done}/{len(category_prompts)} completed")
-                
-                llm = LLM(llm_name, gen_params=gen_params)
-                
+                        
                 # Process remaining samples for this category
                 for i, (prompt, gt) in enumerate(zip(category_prompts[category_samples_done:], category_gts[category_samples_done:])):
                     sample_index = category_samples_done + i
@@ -283,5 +263,9 @@ for llm_name in llm_models:
     
     else:
         raise ValueError("Invalid dataset: {}".format(dataset))
+    
+    del llm
+    llm = []
+    torch.cuda.empty_cache()    
 
 print("All experiments completed!")
