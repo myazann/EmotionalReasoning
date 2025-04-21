@@ -538,14 +538,54 @@
                 "sample_count": 40
             },
             "Ambiguous Story Task": {
-                "accuracy": 0.589,
-                "sample_count": 56
+                "accuracy": 0.755,
+                "sample_count": 200
+            },
+            "Knowledge-Pretend Play Links": {
+                "accuracy": 0.5,
+                "sample_count": 30
+            },
+            "Hidden Emotions": {
+                "accuracy": 0.8,
+                "sample_count": 80
+            },
+            "Strange Story Task": {
+                "accuracy": 0.843,
+                "sample_count": 407
+            },
+            "Hinting Task Test": {
+                "accuracy": 0.757,
+                "sample_count": 103
+            },
+            "Emotion Regulation": {
+                "accuracy": 0.45,
+                "sample_count": 20
+            },
+            "False Belief Task": {
+                "accuracy": 0.925,
+                "sample_count": 600
+            },
+            "Discrepant Intentions": {
+                "accuracy": 0.85,
+                "sample_count": 40
+            },
+            "Percepts-Knowledge Links": {
+                "accuracy": 0.975,
+                "sample_count": 40
+            },
+            "Prediction of Actions": {
+                "accuracy": 0.7,
+                "sample_count": 20
+            },
+            "Completion of Failed Actions": {
+                "accuracy": 0.45,
+                "sample_count": 20
             }
         },
         "abilities": {
             "knowledge": {
-                "accuracy": 0.464,
-                "sample_count": 220,
+                "accuracy": 0.538,
+                "sample_count": 290,
                 "sub_abilities": {
                     "knowledge-attention links": {
                         "accuracy": 0.5,
@@ -554,12 +594,20 @@
                     "information-knowledge links": {
                         "accuracy": 0.46,
                         "sample_count": 200
+                    },
+                    "knowledge-pretend play links": {
+                        "accuracy": 0.5,
+                        "sample_count": 30
+                    },
+                    "percepts-knowledge links": {
+                        "accuracy": 0.975,
+                        "sample_count": 40
                     }
                 }
             },
             "desire": {
-                "accuracy": 0.614,
-                "sample_count": 140,
+                "accuracy": 0.633,
+                "sample_count": 180,
                 "sub_abilities": {
                     "multiple desires": {
                         "accuracy": 0.9,
@@ -572,22 +620,46 @@
                     "desires influence on actions and emotions": {
                         "accuracy": 0.58,
                         "sample_count": 100
+                    },
+                    "desire-action contradiction": {
+                        "accuracy": 0.7,
+                        "sample_count": 40
                     }
                 }
             },
             "non-literal communication": {
-                "accuracy": 0.707,
-                "sample_count": 560,
+                "accuracy": 0.747,
+                "sample_count": 748,
                 "sub_abilities": {
                     "faux pas": {
                         "accuracy": 0.707,
                         "sample_count": 560
+                    },
+                    "irony/sarcasm": {
+                        "accuracy": 0.769,
+                        "sample_count": 26
+                    },
+                    "involuntary lies": {
+                        "accuracy": 0.833,
+                        "sample_count": 42
+                    },
+                    "egocentric lies": {
+                        "accuracy": 0.9,
+                        "sample_count": 40
+                    },
+                    "white lies": {
+                        "accuracy": 0.85,
+                        "sample_count": 40
+                    },
+                    "humor": {
+                        "accuracy": 0.95,
+                        "sample_count": 40
                     }
                 }
             },
             "emotion": {
-                "accuracy": 0.764,
-                "sample_count": 280,
+                "accuracy": 0.757,
+                "sample_count": 420,
                 "sub_abilities": {
                     "moral emotions": {
                         "accuracy": 0.825,
@@ -604,37 +676,77 @@
                     "discrepant emotions": {
                         "accuracy": 0.8,
                         "sample_count": 40
+                    },
+                    "hidden emotions": {
+                        "accuracy": 0.8,
+                        "sample_count": 80
+                    },
+                    "mixed emotions": {
+                        "accuracy": 0.775,
+                        "sample_count": 40
+                    },
+                    "emotion regulation": {
+                        "accuracy": 0.45,
+                        "sample_count": 20
                     }
                 }
             },
             "belief": {
-                "accuracy": 0.625,
-                "sample_count": 128,
+                "accuracy": 0.866,
+                "sample_count": 882,
                 "sub_abilities": {
                     "sequence false beliefs": {
                         "accuracy": 0.63,
                         "sample_count": 100
                     },
                     "beliefs based action/emotions": {
-                        "accuracy": 0.607,
-                        "sample_count": 28
+                        "accuracy": 0.775,
+                        "sample_count": 142
+                    },
+                    "identity false beliefs": {
+                        "accuracy": 0.9,
+                        "sample_count": 40
+                    },
+                    "location false beliefs": {
+                        "accuracy": 0.985,
+                        "sample_count": 200
+                    },
+                    "second-order beliefs": {
+                        "accuracy": 0.98,
+                        "sample_count": 200
+                    },
+                    "content false beliefs": {
+                        "accuracy": 0.81,
+                        "sample_count": 200
                     }
                 }
             },
             "intention": {
-                "accuracy": 0.571,
-                "sample_count": 28,
+                "accuracy": 0.768,
+                "sample_count": 340,
                 "sub_abilities": {
                     "intentions explanations": {
-                        "accuracy": 0.571,
-                        "sample_count": 28
+                        "accuracy": 0.785,
+                        "sample_count": 260
+                    },
+                    "discrepant intentions": {
+                        "accuracy": 0.85,
+                        "sample_count": 40
+                    },
+                    "prediction of actions": {
+                        "accuracy": 0.7,
+                        "sample_count": 20
+                    },
+                    "completion of failed actions": {
+                        "accuracy": 0.45,
+                        "sample_count": 20
                     }
                 }
             }
         },
         "overall": {
-            "accuracy": 0.659,
-            "sample_count": 1356
+            "accuracy": 0.759,
+            "sample_count": 2860
         }
     }
 }
