@@ -175,7 +175,7 @@ def extract_letter_from_answer(answer):
 
 def process_tombench_scenarios(model_gens, gts_data, tombench_data, lang="en"):
     """Process TomBench results for a specific model."""
-    incorrect = []
+    all_samples = []
     
     # Group model generations by scenario name and keep track of their indices within each scenario
     scenario_questions = {}
@@ -275,45 +275,49 @@ def process_tombench_scenarios(model_gens, gts_data, tombench_data, lang="en"):
                     # If pred_idx is out of range, log the issue
                     pred_label = f"Index {pred_idx} out of range (only {len(choices)} choices available)"
             
-            # Check if prediction is incorrect
+            # Get the story and question text based on language
+            story_key = "STORY" if lang == "en" else "故事"
+            question_key = "QUESTION" if lang == "en" else "问题"
+            
+            story = sample_data.get(story_key, "Story text not found")
+            question = sample_data.get(question_key, "Question text not found")
+            
+            # Get ability information
+            ability_key = "能力\nABILITY" 
+            ability = sample_data.get(ability_key, "Unknown")
+            
+            # Collect additional abilities from the model generation
+            main_ability = sample.get("main_ability", "")
+            sub_ability = sample.get("sub_ability", "")
+            
+            # Determine if the prediction is correct
+            is_correct = True
             if pred_idx is None or pred_idx != true_idx:
-                # Get the story and question text based on language
-                story_key = "STORY" if lang == "en" else "故事"
-                question_key = "QUESTION" if lang == "en" else "问题"
+                is_correct = False
                 
-                story = sample_data.get(story_key, "Story text not found")
-                question = sample_data.get(question_key, "Question text not found")
-                
-                # Get ability information
-                ability_key = "能力\nABILITY" 
-                ability = sample_data.get(ability_key, "Unknown")
-                
-                # Collect additional abilities from the model generation
-                main_ability = sample.get("main_ability", "")
-                sub_ability = sample.get("sub_ability", "")
-                
-                incorrect.append({
-                    "scenario": scenario_name,
-                    "ability": ability,
-                    "main_ability": main_ability,
-                    "sub_ability": sub_ability,
-                    "story": story,
-                    "question": question,
-                    "choices": choices,
-                    "ground_truth_idx": true_idx,
-                    "ground_truth_letter": gt_letter,
-                    "ground_truth_label": true_label,
-                    "prediction_idx": pred_idx,
-                    "prediction_label": pred_label,
-                    "raw_prediction": raw_pred,
-                    "reasoning": sample.get("reasoning", "")
-                })
+            all_samples.append({
+                "scenario": scenario_name,
+                "ability": ability,
+                "main_ability": main_ability,
+                "sub_ability": sub_ability,
+                "story": story,
+                "question": question,
+                "choices": choices,
+                "ground_truth_idx": true_idx,
+                "ground_truth_letter": gt_letter,
+                "ground_truth_label": true_label,
+                "prediction_idx": pred_idx,
+                "prediction_label": pred_label,
+                "raw_prediction": raw_pred,
+                "reasoning": sample.get("reasoning", ""),
+                "is_correct": is_correct
+            })
     
-    return incorrect
+    return all_samples
 
 def process_ea_task(model_gens, ea_gts, ea_data, lang="en"):
     """Process EA task results for a specific model."""
-    incorrect = []
+    all_samples = []
     ea_samples = model_gens.get("EA", [])
     
     for idx, sample in enumerate(ea_samples):
@@ -331,35 +335,35 @@ def process_ea_task(model_gens, ea_gts, ea_data, lang="en"):
         
         # Check if the prediction is incorrect by comparing both indices and labels
         # Only mark as incorrect if both the index doesn't match AND the label doesn't match (or prediction is invalid)
-        is_incorrect = False
+        is_correct = True
         if pred_idx is None:
             # Invalid prediction
-            is_incorrect = True
+            is_correct = False
         elif pred_idx != true_idx:
             # Indices don't match, but check if the labels match
             if pred_label != true_label:
-                is_incorrect = True
+                is_correct = False
                 
-        if is_incorrect:
-            incorrect.append({
-                "task": "EA",
-                "problem": sample.get("problem"),
-                # Use the 'Scenario' key for the full question text
-                "scenario": ea_data[idx].get("Scenario", {}).get(lang, "Scenario text not found"), 
-                "choices": choices,
-                "ground_truth_idx": true_idx,
-                "ground_truth_label": true_label,
-                "prediction_idx": pred_idx, # Could be None
-                "prediction_label": pred_label,
-                "raw_prediction": raw_pred,
-                "reasoning": sample.get("reasoning"),
-            })
+        all_samples.append({
+            "task": "EA",
+            "problem": sample.get("problem"),
+            # Use the 'Scenario' key for the full question text
+            "scenario": ea_data[idx].get("Scenario", {}).get(lang, "Scenario text not found"), 
+            "choices": choices,
+            "ground_truth_idx": true_idx,
+            "ground_truth_label": true_label,
+            "prediction_idx": pred_idx, # Could be None
+            "prediction_label": pred_label,
+            "raw_prediction": raw_pred,
+            "reasoning": sample.get("reasoning"),
+            "is_correct": is_correct
+        })
     
-    return incorrect
+    return all_samples
 
 def process_eu_emotion_task(model_gens, emo_gts, eu_data, lang="en"):
     """Process EU-Emotion task results for a specific model."""
-    incorrect = []
+    all_samples = []
     emo_samples = model_gens.get("EU", {}).get("Emotion", [])
     
     for idx, sample in enumerate(emo_samples):
@@ -376,34 +380,34 @@ def process_eu_emotion_task(model_gens, emo_gts, eu_data, lang="en"):
         
         # Check if the prediction is incorrect by comparing both indices and labels
         # Only mark as incorrect if both the index doesn't match AND the label doesn't match (or prediction is invalid)
-        is_incorrect = False
+        is_correct = True
         if pred_idx is None:
             # Invalid prediction
-            is_incorrect = True
+            is_correct = False
         elif pred_idx != true_idx:
             # Indices don't match, but check if the labels match
             if pred_label != true_label:
-                is_incorrect = True
+                is_correct = False
                 
-        if is_incorrect:
-            incorrect.append({
-                "task": "EU-Emotion",
-                "category": sample.get("category"),
-                "scenario": eu_data[idx].get("Scenario", {}).get(lang, "Scenario text not found"),
-                "ground_truth_idx": true_idx,
-                "ground_truth_label": true_label,
-                "prediction_idx": pred_idx,
-                "prediction_label": pred_label,
-                "raw_prediction": raw_pred,
-                "choices": choices,
-                "reasoning": sample.get("reasoning"),
-            })
+        all_samples.append({
+            "task": "EU-Emotion",
+            "category": sample.get("category"),
+            "scenario": eu_data[idx].get("Scenario", {}).get(lang, "Scenario text not found"),
+            "ground_truth_idx": true_idx,
+            "ground_truth_label": true_label,
+            "prediction_idx": pred_idx,
+            "prediction_label": pred_label,
+            "raw_prediction": raw_pred,
+            "choices": choices,
+            "reasoning": sample.get("reasoning"),
+            "is_correct": is_correct
+        })
     
-    return incorrect
+    return all_samples
 
 def process_eu_cause_task(model_gens, cause_gts, eu_data, lang="en"):
     """Process EU-Cause task results for a specific model."""
-    incorrect = []
+    all_samples = []
     cause_samples = model_gens.get("EU", {}).get("Cause", [])
     
     for idx, sample in enumerate(cause_samples):
@@ -420,30 +424,30 @@ def process_eu_cause_task(model_gens, cause_gts, eu_data, lang="en"):
 
         # Check if the prediction is incorrect by comparing both indices and labels
         # Only mark as incorrect if both the index doesn't match AND the label doesn't match (or prediction is invalid)
-        is_incorrect = False
+        is_correct = True
         if pred_idx is None:
             # Invalid prediction
-            is_incorrect = True
+            is_correct = False
         elif pred_idx != true_idx:
             # Indices don't match, but check if the labels match
             if pred_label != true_label:
-                is_incorrect = True
+                is_correct = False
                 
-        if is_incorrect:
-            incorrect.append({
-                "task": "EU-Cause",
-                "category": sample.get("category"),
-                "scenario": eu_data[idx].get("Scenario", {}).get(lang, "Scenario text not found"), 
-                "ground_truth_idx": true_idx,
-                "ground_truth_label": true_label,
-                "prediction_idx": pred_idx,
-                "prediction_label": pred_label,
-                "raw_prediction": raw_pred,
-                "choices": choices,
-                "reasoning": sample.get("reasoning"),
-            })
+        all_samples.append({
+            "task": "EU-Cause",
+            "category": sample.get("category"),
+            "scenario": eu_data[idx].get("Scenario", {}).get(lang, "Scenario text not found"), 
+            "ground_truth_idx": true_idx,
+            "ground_truth_label": true_label,
+            "prediction_idx": pred_idx,
+            "prediction_label": pred_label,
+            "raw_prediction": raw_pred,
+            "choices": choices,
+            "reasoning": sample.get("reasoning"),
+            "is_correct": is_correct
+        })
     
-    return incorrect
+    return all_samples
 
 def process_emobench(lang, results_dir):
     """Process EmoBench results for a specific language."""
@@ -460,38 +464,49 @@ def process_emobench(lang, results_dir):
     gts = get_gts("emobench")
     orig_data = get_emo_data()
     
-    # Dictionary to store incorrect examples for each model
-    all_incorrect = {}
+    # Dictionary to store all examples (both correct and incorrect) for each model
+    all_samples_dict = {}
+    incorrect_count = {}
     
     # Process each model's data
     for model_key in gens:
         model_gens = gens[model_key]
-        model_incorrect = []
+        model_samples = []
+        incorrect_count[model_key] = 0
         
         # Process EA task
-        ea_incorrect = process_ea_task(model_gens, gts["EA"], orig_data["EA"], lang)
-        model_incorrect.extend(ea_incorrect)
+        ea_samples = process_ea_task(model_gens, gts["EA"], orig_data["EA"], lang)
+        for sample in ea_samples:
+            if not sample.get("is_correct", False):
+                incorrect_count[model_key] += 1
+        model_samples.extend(ea_samples)
         
         # Process EU-Emotion task
-        emo_incorrect = process_eu_emotion_task(model_gens, gts["EU"]["Emotion"], orig_data["EU"], lang)
-        model_incorrect.extend(emo_incorrect)
+        emo_samples = process_eu_emotion_task(model_gens, gts["EU"]["Emotion"], orig_data["EU"], lang)
+        for sample in emo_samples:
+            if not sample.get("is_correct", False):
+                incorrect_count[model_key] += 1
+        model_samples.extend(emo_samples)
         
         # Process EU-Cause task
-        cause_incorrect = process_eu_cause_task(model_gens, gts["EU"]["Cause"], orig_data["EU"], lang)
-        model_incorrect.extend(cause_incorrect)
+        cause_samples = process_eu_cause_task(model_gens, gts["EU"]["Cause"], orig_data["EU"], lang)
+        for sample in cause_samples:
+            if not sample.get("is_correct", False):
+                incorrect_count[model_key] += 1
+        model_samples.extend(cause_samples)
         
         # Add this model's results to the dictionary
-        all_incorrect[model_key] = model_incorrect
+        all_samples_dict[model_key] = model_samples
         
         # Also print a summary for this model
-        print(f"Model {model_key} has {len(model_incorrect)} incorrect samples in {lang} language")
+        print(f"Model {model_key} has {incorrect_count[model_key]} incorrect samples out of {len(model_samples)} total in {lang} language")
 
     # Output file with all model results
-    out_file = results_dir / f"emobench_{lang}_incorrect.json"
+    out_file = results_dir / f"emobench_{lang}_samples.json"
     with out_file.open("w", encoding="utf-8") as f:
-        json.dump(all_incorrect, f, indent=2, ensure_ascii=False)
+        json.dump(all_samples_dict, f, indent=2, ensure_ascii=False)
 
-    print(f"Saved incorrect samples for all models to {out_file}")
+    print(f"Saved all samples for all models to {out_file}")
 
 def process_tombench(lang, results_dir):
     """Process TomBench results for a specific language."""
@@ -508,28 +523,32 @@ def process_tombench(lang, results_dir):
     gts = get_gts("tombench")
     tombench_data = get_tom_data()
     
-    # Dictionary to store incorrect examples for each model
-    all_incorrect = {}
+    # Dictionary to store all examples (both correct and incorrect) for each model
+    all_samples_dict = {}
+    incorrect_count = {}
     
     # Process each model's data
     for model_key in gens:
         model_gens = gens[model_key]
         
         # Process TomBench data
-        model_incorrect = process_tombench_scenarios(model_gens, gts, tombench_data, lang)
+        model_samples = process_tombench_scenarios(model_gens, gts, tombench_data, lang)
+        
+        # Count incorrect samples
+        incorrect_count[model_key] = sum(1 for sample in model_samples if not sample.get("is_correct", False))
         
         # Add this model's results to the dictionary
-        all_incorrect[model_key] = model_incorrect
+        all_samples_dict[model_key] = model_samples
         
         # Also print a summary for this model
-        print(f"Model {model_key} has {len(model_incorrect)} incorrect samples in {lang} language")
+        print(f"Model {model_key} has {incorrect_count[model_key]} incorrect samples out of {len(model_samples)} total in {lang} language")
 
     # Output file with all model results
-    out_file = results_dir / f"tombench_{lang}_incorrect.json"
+    out_file = results_dir / f"tombench_{lang}_samples.json"
     with out_file.open("w", encoding="utf-8") as f:
-        json.dump(all_incorrect, f, indent=2, ensure_ascii=False)
+        json.dump(all_samples_dict, f, indent=2, ensure_ascii=False)
 
-    print(f"Saved incorrect samples for all models to {out_file}")
+    print(f"Saved all samples for all models to {out_file}")
 
 def main():
     parser = argparse.ArgumentParser(description='Extract incorrect predictions from EmoBench or TomBench results')
