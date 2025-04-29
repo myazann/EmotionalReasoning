@@ -109,7 +109,6 @@ if dataset == "tombench":
         
         overall_accuracy = overall_correct / overall_total if overall_total > 0 else 0
         
-        # Create final evaluation structure
         eval_res[llm_name] = {
             "topics": topic_res,
             "abilities": abilities_output,
